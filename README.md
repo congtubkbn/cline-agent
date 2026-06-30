@@ -113,6 +113,11 @@ npm install
   ```bash
   npm run parse
   ```
+* **To clean generated files and folders:**
+  ```bash
+  npm run clean
+  ```
+  This removes `out/`, `flow_data.json`, `flow_report.md`, `web/flow_data.json`, and `web/sidecar/`.
 * **To run the web application server:**
   ```bash
   node serve.mjs
