@@ -1,0 +1,58 @@
+[read_file for 'data/cases/08381225/case.json'] Result:
+1 | {
+2 |   "caseNumber": "08381225",
+3 |   "comments": [
+4 |     {
+5 |       "analysisLog": [],
+6 |       "attachments": [],
+7 |       "author": "Thien Tran",
+8 |       "body": "Dear customer\n\n \n\nWill check and update\n\n \n\nThanks",
+9 |       "company": "",
+10 |       "id": "c1",
+11 |       "role": "",
+12 |       "timestamp": "March 5, 2026 at 12:14 AM"
+13 |     },
+14 |     {
+15 |       "analysisLog": [],
+16 |       "attachments": [],
+17 |       "author": "Thien Tran",
+18 |       "body": "From the log sequence, DS received the attach request, but the attach failed during ACL validation, indicating DS seems to not have valid ACL rules/MMGSDI status from UIM.\n\n \n\nSince bootup logs are not available, we cannot confirm what happened during the MMGSDI initialization phase.\n\n++@uim.hotline — Could you please help check if valid EF-ACL information is present and ACL service info was provided in callback.\n\n \n\n[ 52/ 2/2]             QTRACE                  00:25:46.924781         DS/NonVerbose/High/OTHER                                   [ ds3gcmif_external.c   972] Attach Request - Rx'ed CM_CALL_EVENT_GET_PDN_CONN_IND,call_mode 91\n\n[ 52/ 2/2]             QTRACE                  00:25:46.928405         DS/NonVerbose/High/OTHER                                   [ I ds3gmmgsdiif_ex.c  3416] ACL check - mmdsgi state 0   1\n\n \n\nI cloned case 08387262​P251014-03285 A366 NZ UE could not register LTE - clone to UIM to our UIM team for further review\n\n \n\nPlease help to follow on that case\n\n \n\nThanks",
+19 |       "company": "",
+20 |       "id": "c2",
+21 |       "role": "",
+22 |       "timestamp": "++@uim.hotline"
+23 |     }
+24 |   ],
+25 |   "created": "",
+26 |   "customer": "",
+27 |   "description": "",
+28 |   "displayedCommentCount": 1,
+29 |   "priority": "2 - High",
+30 |   "product": "",
+31 |   "severity": "",
+32 |   "status": "Closed-Customer Requested",
+33 |   "title": "P251014-03285 A366 NZ UE could not register LTE",
+34 |   "updated": "",
+35 |   "url": "https://support.qualcomm.com/s/case/500dK00000EvYEbQAN/p25101403285-a366-nz-ue-could-not-register-lte",
+36 |   "hash": "771a7313a82d4a1d9951ed4cf49972e0fe969a0f90d6636652066bed84ece5f4",
+37 |   "extractedAt": "2026-06-29T18:28:09.240Z"
+38 | }
+
+(File has 38 lines total.)
+
+<environment_details>
+# Visual Studio Code Visible Files
+(No visible files)
+
+# Visual Studio Code Open Tabs
+(No open tabs)
+
+# Current Time
+6/30/2026, 1:28:23 AM (Asia/Saigon, UTC+7:00)
+
+# Context Window Usage
+53,032 / 256K tokens used (21%)
+
+# Current Mode
+ACT MODE
+</environment_details>

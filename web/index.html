@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cline Agent Loop Analyzer & Simulator</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Mermaid.js -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Ambient background glow effects -->
+  <div class="ambient-glow glow-indigo"></div>
+  <div class="ambient-glow glow-cyan"></div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-main">
+        <div class="logo-area">
+          <div class="logo-icon">
+            <i data-lucide="cpu"></i>
+          </div>
+          <div>
+            <h1>Cline Loop Analyzer</h1>
+            <p class="subtitle">Agent Loop Analysis, Debugging & Simulation System</p>
+          </div>
+        </div>
+        <div class="task-badge-area">
+          <span class="badge badge-indigo" id="task-id-badge">Loading...</span>
+          <span class="badge badge-emerald" id="model-badge">Loading...</span>
+        </div>
+      </div>
+      
+      <!-- Prompt Overview -->
+      <div class="prompt-box">
+        <div class="prompt-label">
+          <i data-lucide="terminal"></i>
+          <span>First Prompt:</span>
+        </div>
+        <div class="prompt-text" id="initial-prompt">"qualcomm sync 08381225"</div>
+      </div>
+    </header>
+
+    <!-- Stats Dashboard Grid -->
+    <section class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon icon-cyan">
+          <i data-lucide="timer"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-label">Total Duration</span>
+          <span class="stat-value" id="stat-duration">0s</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon icon-indigo">
+          <i data-lucide="database"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-label">Token Usage</span>
+          <span class="stat-value" id="stat-tokens">0 / 0</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon icon-emerald">
+          <i data-lucide="zap"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-label">Cache Performance</span>
+          <span class="stat-value" id="stat-cache">0 / 0</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon icon-amber">
+          <i data-lucide="activity"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-label">Total Steps</span>
+          <span class="stat-value" id="stat-steps">0 turns</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Playback Controls -->
+    <section class="playback-panel">
+      <div class="playback-title">
+        <i data-lucide="play-circle"></i>
+        <span>Playback Simulator</span>
+      </div>
+      <div class="playback-controls">
+        <div class="btn-group">
+          <button class="btn btn-icon" id="btn-prev" title="Previous step"><i data-lucide="chevron-left"></i></button>
+          <button class="btn btn-primary" id="btn-play" title="Play simulation"><i data-lucide="play"></i> Play</button>
+          <button class="btn btn-icon" id="btn-next" title="Next step"><i data-lucide="chevron-right"></i></button>
+          <button class="btn btn-icon btn-danger" id="btn-reset" title="Restart"><i data-lucide="rotate-ccw"></i></button>
+        </div>
+
+        <div class="playback-slider-container">
+          <input type="range" id="playback-slider" min="0" max="0" value="0">
+          <div class="playback-progress-labels">
+            <span id="playback-current-step">Turn -</span>
+            <span id="playback-total-steps">/ -</span>
+          </div>
+        </div>
+
+        <div class="speed-control">
+          <span class="control-label"><i data-lucide="gauge"></i> Speed:</span>
+          <select id="playback-speed">
+            <option value="2000">Fast (2s)</option>
+            <option value="4000" selected>Normal (4s)</option>
+            <option value="8000">Slow (8s)</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Workspace -->
+    <main class="main-layout">
+      <!-- Left Column: Timeline -->
+      <section class="workspace-panel panel-left">
+        <div class="panel-header">
+          <h2><i data-lucide="git-commit"></i> Event Timeline</h2>
+          <div class="filter-group">
+            <button class="btn-filter active" data-filter="all">All</button>
+            <button class="btn-filter" data-filter="tool">Tools</button>
+            <button class="btn-filter" data-filter="command">Commands</button>
+          </div>
+        </div>
+        <div class="panel-content scrollable-y">
+          <div class="timeline-container" id="timeline-list">
+            <!-- Dynamic items go here -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Details & Tabs -->
+      <section class="workspace-panel panel-right">
+        <div class="panel-header">
+          <div class="tabs-list">
+            <button class="tab-btn active" data-tab="simulator"><i data-lucide="monitor"></i> Simulator</button>
+            <button class="tab-btn" data-tab="analytics"><i data-lucide="bar-chart-2"></i> Performance</button>
+            <button class="tab-btn" data-tab="mermaid"><i data-lucide="network"></i> Flowchart</button>
+            <button class="tab-btn" data-tab="inspector"><i data-lucide="code-2"></i> Inspector</button>
+          </div>
+        </div>
+        
+        <div class="panel-content scrollable-y tab-content-area">
+          
+          <!-- Tab: Simulator -->
+          <div class="tab-pane active" id="tab-simulator">
+            <div class="simulator-layout">
+              <div class="sim-header">
+                <span class="sim-step-num" id="sim-step-badge">Step -</span>
+                <h3 id="sim-step-title">Select a step or press Play</h3>
+              </div>
+
+              <!-- Thought Bubble (Reasoning) -->
+              <div class="sim-section thought-bubble">
+                <div class="section-label">
+                  <i data-lucide="brain-circuit"></i>
+                  <span>Agent Reasoning:</span>
+                </div>
+                <div class="bubble-content" id="sim-reasoning">
+                  Select an event in the Timeline to view the reasoning.
+                </div>
+              </div>
+
+              <!-- Action Card -->
+              <div class="sim-section action-card">
+                <div class="section-label">
+                  <i data-lucide="wrench"></i>
+                  <span>Action:</span>
+                </div>
+                <div class="action-content" id="sim-action">
+                  -
+                </div>
+              </div>
+
+              <!-- Output Card -->
+              <div class="sim-section output-card">
+                <div class="section-label">
+                  <i data-lucide="log-in"></i>
+                  <span>Result Output:</span>
+                </div>
+                <pre class="output-content code-font" id="sim-output">-</pre>
+              </div>
+
+              <!-- Extra Meta Info (Checklist & Checkpoint) -->
+              <div class="sim-meta-grid">
+                <div class="meta-section">
+                  <div class="section-label">
+                    <i data-lucide="check-square"></i>
+                    <span>Progress Checklist:</span>
+                  </div>
+                  <ul class="checklist-view" id="sim-checklist">
+                    <li>No information available</li>
+                  </ul>
+                </div>
+                <div class="meta-section">
+                  <div class="section-label">
+                    <i data-lucide="shield-check"></i>
+                    <span>Git Checkpoint:</span>
+                  </div>
+                  <div class="checkpoint-view" id="sim-checkpoint">
+                    <span class="hash">-</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab: Performance Analytics -->
+          <div class="tab-pane" id="tab-analytics">
+            <div class="analytics-layout">
+              <div class="chart-container">
+                <h4><i data-lucide="area-chart"></i> Cumulative Tokens Trend</h4>
+                <canvas id="tokenChart"></canvas>
+              </div>
+              <div class="chart-grid-2">
+                <div class="chart-container">
+                  <h4><i data-lucide="line-chart"></i> Cumulative Cost (USD)</h4>
+                  <canvas id="costChart"></canvas>
+                </div>
+                <div class="chart-container">
+                  <h4><i data-lucide="pie-chart"></i> Cache Distribution (Hit Rate)</h4>
+                  <canvas id="cacheChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab: Mermaid Diagram -->
+          <div class="tab-pane" id="tab-mermaid">
+            <div class="mermaid-layout">
+              <div class="mermaid-controls">
+                <button class="btn btn-secondary" id="btn-render-mmd"><i data-lucide="refresh-cw"></i> Refresh Flowchart</button>
+              </div>
+              <div class="mermaid-render-box">
+                <pre class="mermaid" id="mermaid-code">
+                  flowchart TD
+                    START([task prompt]) --> DONE([completion])
+                </pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab: JSON Inspector -->
+          <div class="tab-pane" id="tab-inspector">
+            <div class="inspector-layout">
+              <div class="inspector-controls">
+                <span>Raw JSON data of the active step:</span>
+                <button class="btn btn-secondary btn-sm" id="btn-copy-json"><i data-lucide="copy"></i> Copy JSON</button>
+              </div>
+              <pre class="json-viewer code-font" id="json-inspector">
+{
+  "info": "Select an event to view raw JSON details."
+}
+              </pre>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+
+    <!-- Sidecar File Reader Modal -->
+    <div class="modal" id="sidecar-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3><i data-lucide="file-text"></i> View Sidecar File</h3>
+          <button class="modal-close" id="btn-close-modal"><i data-lucide="x"></i></button>
+        </div>
+        <div class="modal-body scrollable-y">
+          <pre class="code-font" id="sidecar-file-content">Loading...</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>Cline Agent Loop Analyzer &copy; 2026. Premium interface for loop visualization and simulation.</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

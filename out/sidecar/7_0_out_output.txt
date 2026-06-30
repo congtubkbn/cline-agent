@@ -1,0 +1,18 @@
+            - listitem [level=1]
+              - link "Accessibility Statement" [ref=e59]
+            - listitem [level=1]
+              - link "Responsible AI Policy" [ref=e60]
+        - button "Language: English (US)" [expanded=false, ref=e32]
+          - StaticText "Language: English (US)"
+          - menu
+            - menu
+              - heading "Languages" [level=3, ref=e69]
+              - list
+                - listitem [level=1]
+                  - link "English ( United States )" [ref=e79]
+                - listitem [level=1]
+                  - link "简体中文 ( China )" [ref=e80]
+        - paragraph
+        - paragraph
+        - paragraph
+          - StaticText "Note: Certain services and materials may require you to accept additional terms and conditions before accessing or using those items."

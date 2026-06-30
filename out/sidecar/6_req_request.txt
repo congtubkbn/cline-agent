@@ -1,0 +1,37 @@
+[execute_command for 'powershell -Command "for ($i=1; $i -le 6; $i++) { $R = agent-browser eval --stdin < .claude/skills/qualcomm-case-agent/scripts/readiness.js; Write-Output $R; if ($R -match '\"state\":\"READY\"') { break }; if ($R -match '\"state\":\"EMPTY\"') { break }; if ($R -match '\"state\":\"AUTH\"') { break }; if ($R -match '\"state\":\"BLANK\"') { break }; if ($i -lt 6) { agent-browser wait 2000 } }"'] Result:
+Command failed with exit code 1.
+Output:
+At line:1 char:62
++ ... or ($i=1; $i -le 6; $i++) { $R = agent-browser eval --stdin < .claude ...
++                                                                 ~
+
+The '<' operator is reserved for future use.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : RedirectionNotSupported
+
+<environment_details>
+# Visual Studio Code Visible Files
+(No visible files)
+
+# Visual Studio Code Open Tabs
+(No open tabs)
+
+# Inactive Terminals
+## powershell -Command "for ($i=1; $i -le 6; $i++) { $R = agent-browser eval --stdin < .claude/skills/qualcomm-case-agent/scripts/readiness.js; Write-Output $R; if ($R -match '\"state\":\"READY\"') { break }; if ($R -match '\"state\":\"EMPTY\"') { break }; if ($R -match '\"state\":\"AUTH\"') { break }; if ($R -match '\"state\":\"BLANK\"') { break }; if ($i -lt 6) { agent-browser wait 2000 } }"
+### New Output
+At line:1 char:62
++ ... or ($i=1; $i -le 6; $i++) { $R = agent-browser eval --stdin < .claude ...
++                                                                 ~
+The '<' operator is reserved for future use.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : RedirectionNotSupported
+
+# Current Time
+6/30/2026, 1:26:09 AM (Asia/Saigon, UTC+7:00)
+
+# Context Window Usage
+28,773 / 256K tokens used (11%)
+
+# Current Mode
+ACT MODE
+</environment_details>

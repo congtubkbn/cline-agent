@@ -1,0 +1,10 @@
+{
+  "name": "cline-analyzer-agent",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "parse": "node parser.js",
+    "clean": "node clean.js"
+  }
+}

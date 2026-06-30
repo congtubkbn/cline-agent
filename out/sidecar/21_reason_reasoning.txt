@@ -1,0 +1,100 @@
+Now I need to build the `enrichment` object for case 08381225. Let me analyze the comments:
+
+**Comment c1** (Thien Tran, March 5, 2026 at 12:14 AM):
+- Body: "Dear customer\n\n \n\nWill check and update\n\n \n\nThanks"
+- Role: Acknowledgment/Info from Qualcomm engineer
+- KeyPoints: Just a brief acknowledgment
+- Citations: None
+- Answered: true (it's the opening response to the customer)
+
+**Comment c2** (Thien Tran, ++@uim.hotline):
+- Body: Analysis of log sequence. Key findings:
+  - DS received attach request, but attach failed during ACL validation
+  - DS seems to not have valid ACL rules/MMGSDI status from UIM
+  - Bootup logs not available to confirm MMGSDI initialization
+  - QTRACE logs showing:
+    - 00:25:46.924781: CM_CALL_EVENT_GET_PDN_CONN_IND received
+    - 00:25:46.928405: ACL check - mmdsgi state 0 1
+  - Cloned case 08387262 to UIM team for further review
+  - Requesting UIM team to check if valid EF-ACL information is present and ACL service info was provided in callback
+- Role: Analysis + Request (to UIM team)
+- KeyPoints: ACL validation failure during attach, mmdsgi state 0, CM_CALL_EVENT_GET_PDN_CONN_IND, missing EF-ACL, missing bootup logs, case 08387262 cloned
+- Citations: Likely related to 3GPP TS specifications for ACL/EF-ACL (TS 31.102 for USIM), NAS attach procedure (TS 24.301)
+- Answered: false (to UIM team - awaiting their response)
+
+Let me build the enrichment object:
+
+```json
+{
+  "engineerSummary": "This case involves an LTE attach failure on an NZ UE (SM6475 chipset) where the device cannot register in the LTE PS domain. The issue manifests when transitioning to LTE: NAS sends PDN Connectivity Request indication to DS, but no PDN connectivity request is generated from DS, preventing NAS from triggering LTE attach. Log analysis reveals the attach request reached DS, but failed during ACL (Access Control List) validation — DS appears to lack valid ACL rules or MMGSDI status from UIM. The case has been cloned (08387262) to the UIM team since bootup logs are unavailable, blocking confirmation of the MMGSDI initialization phase. The investigating engineer (Thien Tran) has asked the UIM hotline to verify whether valid EF-ACL information is present in USIM and whether ACL service info was provided during callback.",
+  "currentStatus": "Awaiting UIM team response on cloned case 08387262. The local debug is stalled until the UIM team confirms EF-ACL validity and ACL callback provisioning, as bootup logs were not captured.",
+  "rootCause": "ACL validation failure during NAS attach procedure — DS lacks valid ACL rules/MMGSDI status from UIM. The mmdsgi state (0,1) indicates the UIM-granted ACL context was not properly established or was missing, causing the attach to abort before generating PDN connectivity request. Hypothesis is based on the observed ACL check failure in the trace, though root cause awaits MMGSDI initialization confirmation.",
+  "caseFlow": [
+    {
+      "step": 1,
+      "phase": "Symptom",
+      "date": "2026-03-03",
+      "by": "Sang Bui",
+      "what": "Initial symptom report: UE not registered in PS domain on WCDMA; when moving to LTE, device performs detach. NAS sent PDN Conn Req Ind to DS but no PDN connectivity request from DS, preventing LTE attach.",
+      "refComments": ["08381225-1"]
+    },
+    {
+      "step": 2,
+      "phase": "Analysis",
+      "date": "2026-03-05 00:14",
+      "by": "Thien Tran",
+      "what": "Qualcomm acknowledged case; will investigate.",
+      "refComments": ["c1"]
+    }
+  ],
+  "openQuestions": [
+    "UIM team has not yet confirmed whether valid EF-ACL information is present on the USIM",
+    "UIM team has not yet confirmed whether ACL service info was provided in the callback",
+    "MMGSDI initialization phase is unknown due to missing bootup logs",
+    "Awaiting feedback on cloned case 08387262"
+  ],
+  "recommendedActions": [
+    "Retrieve missing bootup logs covering MMGSDI initialization phase",
+    "Confirm from UIM team whether EF-ACL is valid and ACL service info was delivered in callback on case 08387262",
+    "If EF-ACL is missing or invalid, investigate USIM provisioning or SIM card issue",
+    "Capture fresh logs with bootup coverage if device is available"
+  ],
+  "tags": ["LTE", "Attach", "MMGSDI", "ACL", "EF-ACL", "PS domain", "NAS", "SM6475"],
+  "timeline": [
+    {"date": "2026-03-05 00:14", "event": "Thien Tran acknowledged and began analysis - identified ACL validation failure as probable cause, cloned case 08387262 to UIM team"},
+    {"date": "2026-03-03 23:11", "event": "Sang Bui filed initial case with NAS/DS logs showing PDN Conn Req Ind sent but no PDN connectivity request from DS"}
+  ]
+}
+```
+
+Wait - I need to also create per-comment analyses. Let me construct them.
+
+**c1 analysis:**
+```json
+{
+  "c1": {
+    "summary": "Thien Tran acknowledged the case, committing to investigate the LTE attach failure and provide updates. No technical content beyond a brief response to the customer.",
+    "role": "Info",
+    "keyPoints": [],
+    "citations": [],
+    "answered": true
+  }
+}
+```
+
+**c2 analysis:**
+```json
+{
+  "c2": {
+    "summary": "Thien Tran analyzed the QXDM trace and identified the root symptom: NAS attempted LTE attach but DS aborted the procedure during ACL validation because DS did not have valid ACL rules or MMGSDI status from UIM. Key trace evidence shows CM_CALL_EVENT_GET_PDN_CONN_IND received at 00:25:46.92 followed by an ACL check with mmdsgi state 0,1 that failed. The case has been cloned to 08387262 and routed to the UIM hotline team for further review of EF-ACL validity and ACL service callback provisioning. Bootup logs are missing, preventing confirmation of the MMGSDI initialization phase.",
+    "role": "Analysis",
+    "keyPoints": ["DS received attach request at 00:25:46.92", "ACL validation failed - mmdsgi state 0,1", "No valid ACL rules from UIM / missing MMGSDI status", "Trace: CM_CALL_EVENT_GET_PDN_CONN_IND Rx at 00:25:46.92", "Case 08387262 cloned to UIM team", "Bootup logs unavailable"],
+    "citations": ["TS 24.301 (NAS attach procedure)", "TS 31.102 (EF-ACL in USIM)"],
+    "answered": false
+  }
+}
+```
+
+Now I need to write this as a node script that reads case.json, adds the enrichment, and writes back. Then run render_case.mjs.
+
+Let me create a small node script to do the enrichment.

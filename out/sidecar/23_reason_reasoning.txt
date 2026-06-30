@@ -1,0 +1,16 @@
+Now I need to render the case artifacts and create the PDF. Let me first run render_case.mjs to generate case.report.md, case.md, case.html, case.txt. Then generate the PDF using agent-browser.
+
+For the render script, I should use the case.json file:
+```bash
+node ".claude/skills/qualcomm-case-agent/scripts/render_case.mjs" "data/cases/08381225/case.json"
+```
+
+Then for PDF, I need to use Chrome (which is still attached from PHASE 0). According to the skill instructions:
+```bash
+agent-browser open "file://$(pwd -W)/data/cases/08381225/case.html"
+agent-browser pdf "data/cases/08381225/case.pdf"
+```
+
+The `$(pwd -W)` is a Git Bash command that returns the Windows path. Since the default shell is cmd.exe, I need to find an alternative. I can use PowerShell's `Get-Location` or use the full Windows path directly: `E:\the.thoi\Project\access-qualcomm\data\cases\08381225\case.html`.
+
+Or I can use `cmd /c` with `%cd%` to get the current directory. But that returns the path with backslashes. The `file://` URL needs forward slashes, so I'll use `E:/the.thoi/Project/access-qualcomm/data/cases/08381225/case.html`.

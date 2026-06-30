@@ -1,0 +1,32 @@
+Synced Qualcomm case **08381225** successfully.
+
+**Case:** P251014-03285 A366 NZ UE could not register LTE  
+**Status:** Closed-Customer Requested · **Priority:** 2 - High  
+**Comments captured:** 2 (vs 1 top-level posts) — OK
+
+**Overview:** LTE attach failure on Qualcomm SM6475 (NZ UE). Device camped on WCDMA but failed to transition to LTE. NAS sent a PDN connectivity request indication to DS, but DS never generated the PDN connectivity request. Analysis identified the attach was aborted during ACL (Access Control List) validation because DS lacked valid ACL rules or MMGSDI status from UIM (mmdsgi state 0,1). Case was cloned to **08387262** and routed to the UIM hotline team.
+
+**Current status:** Stalled awaiting UIM team response on cloned case 08387262. EF-ACL validity and MMGSDI ACL callback confirmation still pending.
+
+**Root cause:** ACL validation failure during LTE attach — DS lacks valid ACL rules/MMGSDI status from UIM. Hypothesis awaits UIM team confirmation and bootup logs for final proof.
+
+**Open questions:**  
+- UIM team has not confirmed EF-ACL presence in USIM  
+- UIM team has not confirmed ACL service info was provided in the MMGSDI callback  
+- MMGSDI initialization phase unknown (bootup logs missing)  
+- Response still pending on cloned case 08387262
+
+**Recommended actions:**  
+1. Obtain bootup logs to inspect MMGSDI initialization  
+2. Confirm from UIM team (08387262) the EF-ACL status and ACL service callback  
+3. If EF-ACL missing, investigate provisioning or defective USIM  
+4. Re-run scenario with full QXDM log capture including bootup
+
+**Outputs persisted in** `data/cases/08381225/`:
+- `case.json` (source of truth, enriched)
+- `case.report.md` (summary)
+- `case.html` (full report)
+- `case.txt` (full verbatim)
+- `case.pdf` (printed from local HTML)
+
+**Sync index updated:** `data/cases/_index.json` — `08381225` entry synced with hash `771a7313...` and enrichment timestamp.

@@ -1,0 +1,67 @@
+[read_file for 'data/cases/08381225/case.report.md'] Result:
+1 | # Case Report — 08381225
+2 | 
+3 | **P251014-03285 A366 NZ UE could not register LTE**
+4 | 
+5 | Status: Closed-Customer Requested · Priority: 2 - High · Comments: 2 · Synced: 2026-06-29T18:28:09.240Z
+6 | 
+7 | > ℹ **Completeness:** captured 2 comments (incl. nested replies) vs 1 top-level posts — OK.
+8 | 
+9 | ## Summary
+10 | 
+11 | This is a closed LTE attach failure on an NZ UE (Qualcomm SM6475) opened 2026-03-03 by Sang Bui (Samsung). The device successfully camped on WCDMA and could not transition to LTE because NAS sent a PDN connectivity request indication to DS, but DS never replied with a PDN connectivity request. Thien Tran (Qualcomm CE) analyzed the logs and concluded the attach was aborted inside DS during ACL (Access Control List) validation — DS did not hold valid ACL rules or a valid MMGSDI/EF-ACL status from UIM (mmdsgi state 0,1 at 00:25:46.92). Because bootup logs were not captured, the MMGSDI initialization phase cannot be reconstructed. The case was cloned to 08387262 and routed to the Qualcomm UIM hotline team; as-of the last comment, that team has not yet confirmed whether EF-ACL is present on the USIM or whether the ACL service info was provided in the MMGSDI callback.
+12 | 
+13 | ## Current Status
+14 | 
+15 | Stalled awaiting UIM team response on cloned case 08387262. Without confirmation of EF-ACL validity and the MMGSDI ACL callback result, the root cause cannot be closed.
+16 | 
+17 | ## Root Cause
+18 | 
+19 | ACL validation failure during LTE attach — DS lacks valid ACL rules/MMGSDI status from UIM, based on the failed ACL check and missing PDN connectivity request in trace. Hypothesis awaits UIM team confirmation and bootup logs for final proof.
+20 | 
+21 | ## Open Questions / Awaiting Feedback
+22 | 
+23 | - UIM team has not confirmed whether valid EF-ACL is present in USIM
+24 | - UIM team has not confirmed whether ACL service info was provided in the MMGSDI callback
+25 | - MMGSDI initialization phase is unknown because bootup logs were not captured
+26 | - Response still pending on cloned case 08387262
+27 | 
+28 | ## Recommended Actions
+29 | 
+30 | 1. Obtain bootup logs to inspect MMGSDI initialization sequence
+31 | 2. Confirm from UIM team (08387262) the EF-ACL status and ACL service callback content
+32 | 3. If EF-ACL is missing on the SIM, investigate provisioning or a defective USIM
+33 | 4. Re-run the scenario with full QXDM log capture including bootup
+34 | 
+35 | **Tags:** `LTE` `Attach` `MMGSDI` `ACL` `EF-ACL` `NAS` `PS domain` `SM6475`
+36 | 
+37 | ## Timeline
+38 | 
+39 | - 2026-03-05 00:14 — Thien Tran performed log analysis and cloned case 08387262 to the UIM hotline team.
+40 | - 2026-03-03 23:11 — Sang Bui opened case with NAS/DS logs showing PDN Conn Req Ind without subsequent PDN connectivity request from DS.
+41 | 
+42 | ## Comments (one-line, newest first)
+43 | 
+44 | 1. **March 5, 2026 at 12:14 AM · Thien Tran** — [Info] Thien Tran acknowledged the case and committed to investigating the LTE attach failure. No technical substance — brief customer-facing response only.
+45 | 2. **++@uim.hotline · Thien Tran** — [Analysis] Thien Tran reviewed the NAS/DS trace and concluded the LTE attach failed during ACL validation, because DS lacked valid ACL rules or MMGSDI status from UIM. Key evidence: after receiving CM_CALL_EVENT_GET_PDN_CONN_IND at 00:25:46.92, DS ran an ACL check that returned mmdsgi state 0,1 and failed, so DS never issued a PDN connectivity request to NAS. Because bootup logs are missing, the MMGSDI initialization phase cannot be confirmed. The case was cloned to 08387262 and handed to the UIM hotline team to verify that valid EF-ACL is present in the USIM and that ACL service info was delivered in the MMGSDI callback.
+46 | 
+47 | _Full data: case.json · Full review: case.html_
+
+(File has 47 lines total.)
+
+<environment_details>
+# Visual Studio Code Visible Files
+(No visible files)
+
+# Visual Studio Code Open Tabs
+(No open tabs)
+
+# Current Time
+6/30/2026, 1:29:37 AM (Asia/Saigon, UTC+7:00)
+
+# Context Window Usage
+60,460 / 256K tokens used (24%)
+
+# Current Mode
+ACT MODE
+</environment_details>

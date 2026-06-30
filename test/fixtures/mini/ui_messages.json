@@ -1,0 +1,8 @@
+[
+  {"ts":1000,"type":"say","say":"task","text":"do the thing","modelInfo":{"providerId":"cline","modelId":"m","mode":"act"},"conversationHistoryIndex":-1},
+  {"ts":1100,"type":"say","say":"api_req_started","text":"{\"request\":\"R\",\"tokensIn\":10,\"tokensOut\":2,\"cacheReads\":0,\"cacheWrites\":0,\"cost\":0}","conversationHistoryIndex":0},
+  {"ts":1200,"type":"say","say":"reasoning","text":"I will run a command to do the thing.","conversationHistoryIndex":1},
+  {"ts":1300,"type":"say","say":"command","text":"echo hi","conversationHistoryIndex":1},
+  {"ts":1400,"type":"ask","ask":"command_output","text":"hi\n","conversationHistoryIndex":1},
+  {"ts":1500,"type":"say","say":"completion_result","text":"done","conversationHistoryIndex":1}
+]

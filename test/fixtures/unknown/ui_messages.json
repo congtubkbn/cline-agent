@@ -1,0 +1,4 @@
+[
+  {"ts":1,"type":"say","say":"task","text":"x","conversationHistoryIndex":-1},
+  {"ts":2,"type":"say","say":"mystery","text":"unknown payload","conversationHistoryIndex":-1}
+]
