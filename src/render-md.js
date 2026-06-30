@@ -35,28 +35,28 @@ export function renderMarkdown(flow) {
   const endTs = lastTurn ? lastTurn.tsEnd : null;
   const t = flow.totals;
 
-  L.push(`# 📊 Báo Cáo Phân Tích Lượt Hoạt Động (Flow Report) — Task: ${flow.taskId}`);
+  L.push(`# 📊 Agent Loop Flow Report — Task: ${flow.taskId}`);
   L.push('');
-  L.push('## 1. 📈 Thông Số Tổng Quan (Metadata & Totals)');
+  L.push('## 1. 📈 Metadata & Totals');
   L.push('');
-  L.push('| 🏷️ Chỉ số (Metric) | 📝 Chi tiết (Value) |');
+  L.push('| 🏷️ Metric | 📝 Value |');
   L.push('| :--- | :--- |');
-  L.push(`| **Tác vụ (Prompt)** | \`${flow.prompt.replace(/\r?\n/g, ' ')}\` |`);
+  L.push(`| **Task (Prompt)** | \`${flow.prompt.replace(/\r?\n/g, ' ')}\` |`);
   if (flow.model) {
-    L.push(`| **Mô hình AI (Model)** | \`${flow.model.modelId}\` (${flow.model.mode}) |`);
+    L.push(`| **AI Model (Model)** | \`${flow.model.modelId}\` (${flow.model.mode}) |`);
   }
-  L.push(`| **Thời gian thực hiện** | \`${formatDateTime(startTs)}\` ── \`${formatDateTime(endTs)}\` (Tổng: **${Math.round(t.durationMs/1000)} giây**) |`);
-  L.push(`| **Tài nguyên tiêu thụ** | **${t.turns} turns** · **${t.events} events** |`);
-  L.push(`| **Token sử dụng** | Input: \`${t.tokensIn.toLocaleString()}\` · Output: \`${t.tokensOut.toLocaleString()}\` |`);
-  L.push(`| **Đọc/Ghi Cache** | Đọc: \`${t.cacheReads.toLocaleString()}\` · Ghi: \`${t.cacheWrites.toLocaleString()}\` |`);
-  L.push(`| **Chi phí (Cost)** | \`$${t.cost.toFixed(4)}\` |`);
+  L.push(`| **Execution Time** | \`${formatDateTime(startTs)}\` ── \`${formatDateTime(endTs)}\` (Total: **${Math.round(t.durationMs/1000)} seconds**) |`);
+  L.push(`| **Resource Usage** | **${t.turns} turns** · **${t.events} events** |`);
+  L.push(`| **Tokens Used** | Input: \`${t.tokensIn.toLocaleString()}\` · Output: \`${t.tokensOut.toLocaleString()}\` |`);
+  L.push(`| **Cache Read/Write** | Read: \`${t.cacheReads.toLocaleString()}\` · Write: \`${t.cacheWrites.toLocaleString()}\` |`);
+  L.push(`| **Cost** | \`$${t.cost.toFixed(4)}\` |`);
   L.push('');
-  L.push('## 2. 🗺️ Sơ Đồ Tiến Trình (Flow Diagram)');
+  L.push('## 2. 🗺️ Flow Diagram');
   L.push('```mermaid');
   L.push(flow.mermaid);
   L.push('```');
   L.push('');
-  L.push('## 3. 🔍 Chi Tiết Từng Lượt Hoạt Động (Execution Turns)');
+  L.push('## 3. 🔍 Detailed Execution Turns');
   L.push('');
 
   for (const turn of flow.turns) {
@@ -67,7 +67,7 @@ export function renderMarkdown(flow) {
     
     if (turn.reasoning) {
       L.push('<details>');
-      L.push('<summary>🧠 <b>Reasoning (Suy nghĩ của AI)</b></summary>');
+      L.push('<summary>🧠 <b>AI Reasoning</b></summary>');
       L.push('');
       L.push(`> ${block(turn.reasoning).split('\n').join('\n> ')}`);
       L.push('</details>');
@@ -87,7 +87,7 @@ export function renderMarkdown(flow) {
       if (a.output) {
         const outTime = formatFullTime(a.output.ts);
         const delta = ((a.output.ts - a.ts) / 1000).toFixed(2);
-        const errAlert = a.output.isError ? ' · ⚠️ **Lỗi phát hiện!**' : '';
+        const errAlert = a.output.isError ? ' · ⚠️ **Error Detected!**' : '';
         L.push(`  * 📥 **Output:** \`${outTime}\` (ts: \`${a.output.ts}\`) | delta: \`+${delta}s\`${errAlert}`);
         
         const outputText = block(a.output);
@@ -114,7 +114,7 @@ export function renderMarkdown(flow) {
     }
     L.push('');
   }
-  L.push('## 4. 🏁 Kết quả hoàn thành (Completion)');
+  L.push('## 4. 🏁 Completion Result');
   L.push(block(flow.completion));
   L.push('');
   return L.join('\n');
@@ -124,18 +124,18 @@ export function renderErrorMarkdown(flow) {
   const L = [];
   const errorTurns = flow.turns.filter(t => t.hasError);
 
-  L.push(`# ❌ Báo Cáo Lỗi Hoạt Động (Error Report) — Task: ${flow.taskId}`);
+  L.push(`# ❌ Agent Loop Error Report — Task: ${flow.taskId}`);
   L.push('');
 
   if (errorTurns.length === 0) {
-    L.push('🎉 **Chúc mừng! Không phát hiện bất kỳ lỗi thực thi nào trong các lượt hoạt động của task này.**');
+    L.push('🎉 **Congratulations! No execution errors were detected in any of the turns for this task.**');
     L.push('');
-    L.push(`👉 *Xem báo cáo đầy đủ tại [flow_report.md](file:///e:/the.thoi/Project/cline-agent/cline-agent/flow_report.md).*`);
+    L.push(`👉 *View the full report at [flow_report.md](file:///e:/the.thoi/Project/cline-agent/cline-agent/flow_report.md).*`);
     L.push('');
     return L.join('\n');
   }
 
-  L.push(`Phát hiện **${errorTurns.length}** lượt có lỗi kỹ thuật dưới đây:`);
+  L.push(`Detected **${errorTurns.length}** turns with technical errors:`);
   L.push('');
 
   for (const turn of errorTurns) {
@@ -145,7 +145,7 @@ export function renderErrorMarkdown(flow) {
     
     if (turn.reasoning) {
       L.push('<details>');
-      L.push('<summary>🧠 <b>Reasoning (Suy nghĩ của AI)</b></summary>');
+      L.push('<summary>🧠 <b>AI Reasoning</b></summary>');
       L.push('');
       L.push(`> ${block(turn.reasoning).split('\n').join('\n> ')}`);
       L.push('</details>');
@@ -165,7 +165,7 @@ export function renderErrorMarkdown(flow) {
       if (a.output) {
         const outTime = formatFullTime(a.output.ts);
         const delta = ((a.output.ts - a.ts) / 1000).toFixed(2);
-        const errAlert = a.output.isError ? ' · ⚠️ **Lỗi phát hiện!**' : '';
+        const errAlert = a.output.isError ? ' · ⚠️ **Error Detected!**' : '';
         L.push(`  * 📥 **Output:** \`${outTime}\` (ts: \`${a.output.ts}\`) | delta: \`+${delta}s\`${errAlert}`);
         
         const outputText = block(a.output);
@@ -194,7 +194,7 @@ export function renderErrorMarkdown(flow) {
   }
 
   L.push('---');
-  L.push(`👉 *Xem báo cáo đầy đủ tại [flow_report.md](file:///e:/the.thoi/Project/cline-agent/cline-agent/flow_report.md).*`);
+  L.push(`👉 *View the full report at [flow_report.md](file:///e:/the.thoi/Project/cline-agent/cline-agent/flow_report.md).*`);
   L.push('');
   return L.join('\n');
 }

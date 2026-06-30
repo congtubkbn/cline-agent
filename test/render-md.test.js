@@ -12,5 +12,5 @@ test('markdown shows prompt, turn headers, intents, completion', () => {
   assert.match(md, /### 🔄 Turn 0/);
   assert.match(md, /Turn 28/);          // 29 turns => 0..28
   assert.match(md, /\*\*Why:\*\*/);     // intent rendered
-  assert.match(md, /## 4. 🏁 Kết quả hoàn thành \(Completion\)/);
+  assert.match(md, /## 4. 🏁 Completion Result/);
 });
