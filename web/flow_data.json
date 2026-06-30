@@ -32,6 +32,7 @@
       "tsStart": 1782757526066,
       "tsEnd": 1782757531267,
       "durationMs": 5201,
+      "hasError": false,
       "request": {
         "tokensIn": 17350,
         "tokensOut": 192,
@@ -103,6 +104,7 @@
       "tsStart": 1782757531430,
       "tsEnd": 1782757537368,
       "durationMs": 5938,
+      "hasError": false,
       "request": {
         "tokensIn": 9469,
         "tokensOut": 433,
@@ -138,6 +140,7 @@
           },
           "output": {
             "ts": 1782757537161,
+            "isError": false,
             "preview": "intake OK 08381225\n",
             "summary": "",
             "sidecar": "",
@@ -195,6 +198,7 @@
       "tsStart": 1782757537539,
       "tsEnd": 1782757546392,
       "durationMs": 8853,
+      "hasError": false,
       "request": {
         "tokensIn": 26910,
         "tokensOut": 328,
@@ -230,6 +234,7 @@
           },
           "output": {
             "ts": 1782757546152,
+            "isError": false,
             "preview": "\nChrome CDP already listening on 9222 - reusing it. Profile: E:\\the.thoi\\Project\\access-qualcomm\\data\\chrome-profile\nNext: agent-browser connect \"ws://127.0.0.1:9222/devtools/browser/76a8038e-4287-4376-a3c4-1600315242ff\"",
             "summary": "",
             "sidecar": "",
@@ -287,6 +292,7 @@
       "tsStart": 1782757546587,
       "tsEnd": 1782757552155,
       "durationMs": 5568,
+      "hasError": false,
       "request": {
         "tokensIn": 27495,
         "tokensOut": 326,
@@ -322,6 +328,7 @@
           },
           "output": {
             "ts": 1782757551934,
+            "isError": false,
             "preview": "✓ Done\n",
             "summary": "",
             "sidecar": "",
@@ -379,6 +386,7 @@
       "tsStart": 1782757552334,
       "tsEnd": 1782757562073,
       "durationMs": 9739,
+      "hasError": false,
       "request": {
         "tokensIn": 27963,
         "tokensOut": 255,
@@ -414,6 +422,7 @@
           },
           "output": {
             "ts": 1782757561841,
+            "isError": false,
             "preview": "✓ Widget\n  https://support.qualcomm.com/s/global-search/08381225\n",
             "summary": "",
             "sidecar": "",
@@ -471,6 +480,7 @@
       "tsStart": 1782757562250,
       "tsEnd": 1782757569583,
       "durationMs": 7333,
+      "hasError": true,
       "request": {
         "tokensIn": 748,
         "tokensOut": 377,
@@ -506,6 +516,7 @@
           },
           "output": {
             "ts": 1782757569360,
+            "isError": true,
             "preview": "At line:1 char:62\n+ ... or ($i=1; $i -le 6; $i++) { $R = agent-browser eval --stdin < .claude ...\n+                                                                 ~\n\nThe '<' operator is reserved for future use.\n    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException\n    + FullyQualifiedErrorId : RedirectionNotSupported\n",
             "summary": "",
             "sidecar": "",
@@ -563,6 +574,7 @@
       "tsStart": 1782757569751,
       "tsEnd": 1782757576459,
       "durationMs": 6708,
+      "hasError": false,
       "request": {
         "tokensIn": 3231,
         "tokensOut": 701,
@@ -598,6 +610,7 @@
           },
           "output": {
             "ts": 1782757576248,
+            "isError": false,
             "preview": "{\n  \"host\": \"support.qualcomm.com\",\n  \"noResults\": false,\n  \"nodes\": 1619,\n  \"rows\": 6,\n  \"spinner\": 0,\n  \"state\": \"READY\",\n  \"title\": \"Search Results | 08381225\",\n  \"url\": \"https://support.qualcomm.com/s/global-search/08381225\"\n}\n",
             "summary": "",
             "sidecar": "",
@@ -655,6 +668,7 @@
       "tsStart": 1782757576645,
       "tsEnd": 1782757591019,
       "durationMs": 14374,
+      "hasError": false,
       "request": {
         "tokensIn": 1902,
         "tokensOut": 246,
@@ -690,6 +704,7 @@
           },
           "output": {
             "ts": 1782757590752,
+            "isError": false,
             "preview": "            - listitem [level=1]\n              - link \"Accessibility Statement\" [ref=e59]\n            - listitem [level=1]\n              - link \"Responsible AI Policy\" [ref=e60]\n        - button \"Language: English (US)\" [expanded=false, ref=e32]\n          - StaticText \"Language: English (US)\"\n          - menu\n            - menu\n              - heading \"Languages\" [level=3, ref=e69]\n              - list\n                - listitem [level=1]\n                  - link \"English ( United States )\" [ref=e79]\n                - listitem [level=1]\n                  - link \"简体中文 ( China )\" [ref=e80]\n        - paragraph\n        - paragraph\n        - paragraph\n          - StaticText \"Note: Certain services and materials may require you to accept additional terms and conditions before accessing or using…",
             "summary": "- listitem [level=1] - link \"Accessibility Statement\" [ref=e59] - listitem [level=1] - link \"Responsible AI Policy\" […",
             "sidecar": "sidecar/7_0_out_output.txt",
@@ -747,6 +762,7 @@
       "tsStart": 1782757591199,
       "tsEnd": 1782757603129,
       "durationMs": 11930,
+      "hasError": false,
       "request": {
         "tokensIn": 10259,
         "tokensOut": 380,
@@ -782,6 +798,7 @@
           },
           "output": {
             "ts": 1782757602912,
+            "isError": false,
             "preview": "✓ Done\n",
             "summary": "",
             "sidecar": "",
@@ -839,6 +856,7 @@
       "tsStart": 1782757603324,
       "tsEnd": 1782757609331,
       "durationMs": 6007,
+      "hasError": false,
       "request": {
         "tokensIn": 634,
         "tokensOut": 243,
@@ -874,6 +892,7 @@
           },
           "output": {
             "ts": 1782757609115,
+            "isError": false,
             "preview": "\"https://support.qualcomm.com/s/global-search/08381225\"\n",
             "summary": "",
             "sidecar": "",
@@ -931,6 +950,7 @@
       "tsStart": 1782757609505,
       "tsEnd": 1782757622725,
       "durationMs": 13220,
+      "hasError": false,
       "request": {
         "tokensIn": 789,
         "tokensOut": 391,
@@ -966,6 +986,7 @@
           },
           "output": {
             "ts": 1782757622493,
+            "isError": false,
             "preview": "✓ Done\n",
             "summary": "",
             "sidecar": "",
@@ -1023,6 +1044,7 @@
       "tsStart": 1782757622946,
       "tsEnd": 1782757628247,
       "durationMs": 5301,
+      "hasError": false,
       "request": {
         "tokensIn": 634,
         "tokensOut": 259,
@@ -1058,6 +1080,7 @@
           },
           "output": {
             "ts": 1782757628024,
+            "isError": false,
             "preview": "\"https://support.qualcomm.com/s/case/500dK00000EvYEbQAN/p25101403285-a366-nz-ue-could-not-register-lte\"\n",
             "summary": "",
             "sidecar": "",
@@ -1115,6 +1138,7 @@
       "tsStart": 1782757628466,
       "tsEnd": 1782757635106,
       "durationMs": 6640,
+      "hasError": false,
       "request": {
         "tokensIn": 835,
         "tokensOut": 336,
@@ -1150,6 +1174,7 @@
           },
           "output": {
             "ts": 1782757634856,
+            "isError": false,
             "preview": "  - StaticText \"Case: 08381225\"\n",
             "summary": "",
             "sidecar": "",
@@ -1207,6 +1232,7 @@
       "tsStart": 1782757635321,
       "tsEnd": 1782757644793,
       "durationMs": 9472,
+      "hasError": false,
       "request": {
         "tokensIn": 47335,
         "tokensOut": 301,
@@ -1242,6 +1268,7 @@
           },
           "output": {
             "ts": 1782757644578,
+            "isError": false,
             "preview": "          - button \"More\" [expanded=false, ref=e84]\n            - StaticText \"More\"\n      - button \"Printable View\" [ref=e70]\n        - StaticText \"Printable View\"\n          - button \"Preview\" [ref=e86]\n            - StaticText \"Preview\"\n          - button \"Preview\" [ref=e87]\n            - StaticText \"Preview\"\n        - button \"More\" [expanded=false, ref=e33]\n            - button \"More\" [expanded=false, ref=e75]\n                            - StaticText \"1 view\"\n",
             "summary": "",
             "sidecar": "",
@@ -1299,6 +1326,7 @@
       "tsStart": 1782757644976,
       "tsEnd": 1782757657377,
       "durationMs": 12401,
+      "hasError": false,
       "request": {
         "tokensIn": 966,
         "tokensOut": 269,
@@ -1334,6 +1362,7 @@
           },
           "output": {
             "ts": 1782757657135,
+            "isError": false,
             "preview": "✓ Done\n",
             "summary": "",
             "sidecar": "",
@@ -1391,6 +1420,7 @@
       "tsStart": 1782757657557,
       "tsEnd": 1782757669729,
       "durationMs": 12172,
+      "hasError": false,
       "request": {
         "tokensIn": 7212,
         "tokensOut": 311,
@@ -1426,6 +1456,7 @@
           },
           "output": {
             "ts": 1782757669493,
+            "isError": false,
             "preview": "✓ Done\n",
             "summary": "",
             "sidecar": "",
@@ -1483,6 +1514,7 @@
       "tsStart": 1782757669910,
       "tsEnd": 1782757676477,
       "durationMs": 6567,
+      "hasError": false,
       "request": {
         "tokensIn": 658,
         "tokensOut": 260,
@@ -1569,6 +1601,7 @@
       "tsStart": 1782757676652,
       "tsEnd": 1782757682839,
       "durationMs": 6187,
+      "hasError": false,
       "request": {
         "tokensIn": 49003,
         "tokensOut": 303,
@@ -1655,6 +1688,7 @@
       "tsStart": 1782757683033,
       "tsEnd": 1782757689467,
       "durationMs": 6434,
+      "hasError": false,
       "request": {
         "tokensIn": 49394,
         "tokensOut": 352,
@@ -1690,6 +1724,7 @@
           },
           "output": {
             "ts": 1782757689256,
+            "isError": false,
             "preview": "{\"code\":0,\"caseCode\":\"08381225\",\"commentCount\":2,\"hash\":\"771a7313a82d4a1d9951ed4cf49972e0fe969a0f90d6636652066bed84ece5f4\",\"path\":\"e:\\\\the.thoi\\\\Project\\\\access-qualcomm\\\\data\\\\cases\\\\08381225\\\\case.json\",\"warning\":\"empty header fields: customer\"}\n",
             "summary": "",
             "sidecar": "",
@@ -1747,6 +1782,7 @@
       "tsStart": 1782757689649,
       "tsEnd": 1782757695950,
       "durationMs": 6301,
+      "hasError": false,
       "request": {
         "tokensIn": 1097,
         "tokensOut": 276,
@@ -1834,6 +1870,7 @@
       "tsStart": 1782757696137,
       "tsEnd": 1782757703381,
       "durationMs": 7244,
+      "hasError": false,
       "request": {
         "tokensIn": 3070,
         "tokensOut": 170,
@@ -1925,6 +1962,7 @@
       "tsStart": 1782757703552,
       "tsEnd": 1782757729971,
       "durationMs": 26419,
+      "hasError": false,
       "request": {
         "tokensIn": 6147,
         "tokensOut": 3096,
@@ -1960,6 +1998,7 @@
           },
           "output": {
             "ts": 1782757729745,
+            "isError": false,
             "preview": "ENRICHED OK\n",
             "summary": "",
             "sidecar": "",
@@ -2017,6 +2056,7 @@
       "tsStart": 1782757730177,
       "tsEnd": 1782757738138,
       "durationMs": 7961,
+      "hasError": false,
       "request": {
         "tokensIn": 9130,
         "tokensOut": 383,
@@ -2103,6 +2143,7 @@
       "tsStart": 1782757738320,
       "tsEnd": 1782757748040,
       "durationMs": 9720,
+      "hasError": false,
       "request": {
         "tokensIn": 5643,
         "tokensOut": 548,
@@ -2138,6 +2179,7 @@
           },
           "output": {
             "ts": 1782757747822,
+            "isError": false,
             "preview": "wrote:\n  data\\cases\\08381225\\case.report.md\n  data\\cases\\08381225\\case.md\n  data\\cases\\08381225\\case.html\n  data\\cases\\08381225\\case.txt\n",
             "summary": "",
             "sidecar": "",
@@ -2195,6 +2237,7 @@
       "tsStart": 1782757748242,
       "tsEnd": 1782757755794,
       "durationMs": 7552,
+      "hasError": false,
       "request": {
         "tokensIn": 10270,
         "tokensOut": 323,
@@ -2230,6 +2273,7 @@
           },
           "output": {
             "ts": 1782757755567,
+            "isError": false,
             "preview": "✓ 08381225 — P251014-03285 A366 NZ UE could not register LTE\n  file:///E:/the.thoi/Project/access-qualcomm/data/cases/08381225/case.html\n",
             "summary": "",
             "sidecar": "",
@@ -2287,6 +2331,7 @@
       "tsStart": 1782757755996,
       "tsEnd": 1782757763736,
       "durationMs": 7740,
+      "hasError": false,
       "request": {
         "tokensIn": 1316,
         "tokensOut": 256,
@@ -2322,6 +2367,7 @@
           },
           "output": {
             "ts": 1782757763506,
+            "isError": false,
             "preview": "✓ PDF saved to data/cases/08381225/case.pdf\n",
             "summary": "",
             "sidecar": "",
@@ -2379,6 +2425,7 @@
       "tsStart": 1782757763937,
       "tsEnd": 1782757770584,
       "durationMs": 6647,
+      "hasError": false,
       "request": {
         "tokensIn": 1212,
         "tokensOut": 373,
@@ -2414,6 +2461,7 @@
           },
           "output": {
             "ts": 1782757770358,
+            "isError": false,
             "preview": "INDEX UPDATED\n",
             "summary": "",
             "sidecar": "",
@@ -2471,6 +2519,7 @@
       "tsStart": 1782757770795,
       "tsEnd": 1782757777236,
       "durationMs": 6441,
+      "hasError": false,
       "request": {
         "tokensIn": 1443,
         "tokensOut": 137,
@@ -2562,6 +2611,7 @@
       "tsStart": 1782757777422,
       "tsEnd": 1782757790223,
       "durationMs": 12801,
+      "hasError": false,
       "request": {
         "tokensIn": 8030,
         "tokensOut": 839,

@@ -2,6 +2,7 @@ import { groupTurns } from './turns.js';
 import { extractIntent } from './intent.js';
 import { makeTextPolicy } from './text-policy.js';
 import { toMermaid } from './diagram.js';
+import { detectError } from './errors.js';
 
 export function buildFlow(run, { thresholdTokens = 200, perKind = {}, sink } = {}) {
   const policy = makeTextPolicy({ thresholdTokens, perKind, sink });
@@ -9,21 +10,27 @@ export function buildFlow(run, { thresholdTokens = 200, perKind = {}, sink } = {
 
   const turns = rawTurns.map(t => {
     const reasoningText = t.reasoning?.text || '';
-    const actions = t.actions.map((a, ai) => ({
-      kind: a.kind,
-      ts: a.ts,
-      what: a.what,
-      why: extractIntent(reasoningText, a),
-      text: policy(`action_${a.kind}`, `${t.index}_${ai}`, a.text),
-      output: a.output ? {
-        ts: a.output.ts,
-        ...policy('output', `${t.index}_${ai}_out`, a.output.text)
-      } : null
-    }));
+    const actions = t.actions.map((a, ai) => {
+      const hasErr = a.output ? detectError(a.output.text) : false;
+      return {
+        kind: a.kind,
+        ts: a.ts,
+        what: a.what,
+        why: extractIntent(reasoningText, a),
+        text: policy(`action_${a.kind}`, `${t.index}_${ai}`, a.text),
+        output: a.output ? {
+          ts: a.output.ts,
+          isError: hasErr,
+          ...policy('output', `${t.index}_${ai}_out`, a.output.text)
+        } : null
+      };
+    });
+    const turnHasError = actions.some(act => act.output && act.output.isError);
     const d = t.request.data || {};
     return {
       index: t.index,
       tsStart: t.tsStart, tsEnd: t.tsEnd, durationMs: t.durationMs,
+      hasError: turnHasError,
       request: {
         tokensIn: d.tokensIn || 0, tokensOut: d.tokensOut || 0, cost: d.cost || 0,
         cacheReads: d.cacheReads || 0, cacheWrites: d.cacheWrites || 0,

@@ -62,7 +62,8 @@ export function renderMarkdown(flow) {
   for (const turn of flow.turns) {
     const startStr = formatFullTime(turn.tsStart);
     const endStr = formatFullTime(turn.tsEnd);
-    L.push(`### 🔄 Turn ${turn.index}  ·  \`[${startStr} - ${endStr} | ts: ${turn.tsStart}]\`  ·  \`+${Math.round(turn.durationMs/1000)}s\`  ·  \`${turn.request.tokensIn}→${turn.request.tokensOut}\` tok`);
+    const iconTurn = turn.hasError ? '❌' : '🔄';
+    L.push(`### ${iconTurn} Turn ${turn.index}  ·  \`[${startStr} - ${endStr} | ts: ${turn.tsStart}]\`  ·  \`+${Math.round(turn.durationMs/1000)}s\`  ·  \`${turn.request.tokensIn}→${turn.request.tokensOut}\` tok`);
     
     if (turn.reasoning) {
       L.push('<details>');
@@ -86,12 +87,14 @@ export function renderMarkdown(flow) {
       if (a.output) {
         const outTime = formatFullTime(a.output.ts);
         const delta = ((a.output.ts - a.ts) / 1000).toFixed(2);
-        L.push(`  * 📥 **Output:** \`${outTime}\` (ts: \`${a.output.ts}\`) | delta: \`+${delta}s\``);
+        const errAlert = a.output.isError ? ' · ⚠️ **Lỗi phát hiện!**' : '';
+        L.push(`  * 📥 **Output:** \`${outTime}\` (ts: \`${a.output.ts}\`) | delta: \`+${delta}s\`${errAlert}`);
         
         const outputText = block(a.output);
         if (outputText && outputText !== '_none_') {
           const lines = outputText.split('\n');
-          L.push('    <details>');
+          const openAttr = a.output.isError ? ' open' : '';
+          L.push(`    <details${openAttr}>`);
           L.push(`    <summary>📄 <i>Click to view output details (${lines.length} lines)</i></summary>`);
           L.push('');
           L.push(`    > ` + lines.join('\n    > '));
@@ -113,6 +116,85 @@ export function renderMarkdown(flow) {
   }
   L.push('## 4. 🏁 Kết quả hoàn thành (Completion)');
   L.push(block(flow.completion));
+  L.push('');
+  return L.join('\n');
+}
+
+export function renderErrorMarkdown(flow) {
+  const L = [];
+  const errorTurns = flow.turns.filter(t => t.hasError);
+
+  L.push(`# ❌ Báo Cáo Lỗi Hoạt Động (Error Report) — Task: ${flow.taskId}`);
+  L.push('');
+
+  if (errorTurns.length === 0) {
+    L.push('🎉 **Chúc mừng! Không phát hiện bất kỳ lỗi thực thi nào trong các lượt hoạt động của task này.**');
+    L.push('');
+    L.push(`👉 *Xem báo cáo đầy đủ tại [flow_report.md](file:///e:/the.thoi/Project/cline-agent/cline-agent/flow_report.md).*`);
+    L.push('');
+    return L.join('\n');
+  }
+
+  L.push(`Phát hiện **${errorTurns.length}** lượt có lỗi kỹ thuật dưới đây:`);
+  L.push('');
+
+  for (const turn of errorTurns) {
+    const startStr = formatFullTime(turn.tsStart);
+    const endStr = formatFullTime(turn.tsEnd);
+    L.push(`### ❌ Turn ${turn.index}  ·  \`[${startStr} - ${endStr} | ts: ${turn.tsStart}]\`  ·  \`+${Math.round(turn.durationMs/1000)}s\`  ·  \`${turn.request.tokensIn}→${turn.request.tokensOut}\` tok`);
+    
+    if (turn.reasoning) {
+      L.push('<details>');
+      L.push('<summary>🧠 <b>Reasoning (Suy nghĩ của AI)</b></summary>');
+      L.push('');
+      L.push(`> ${block(turn.reasoning).split('\n').join('\n> ')}`);
+      L.push('</details>');
+      L.push('');
+    }
+
+    for (const a of turn.actions) {
+      const what = a.kind === 'tool' ? `${a.what.tool} ${a.what.path || ''}`.trim() : a.what.command;
+      const actionTime = formatFullTime(a.ts);
+      const icon = a.kind === 'tool' ? '🛠️' : '💻';
+      
+      L.push(`* ${icon} **${a.kind}:** \`${what}\``);
+      L.push(`  * ⏱️ **Time:** \`${actionTime}\` (ts: \`${a.ts}\`)`);
+      if (a.why) {
+        L.push(`  * 🎯 **Why:** ${a.why}`);
+      }
+      if (a.output) {
+        const outTime = formatFullTime(a.output.ts);
+        const delta = ((a.output.ts - a.ts) / 1000).toFixed(2);
+        const errAlert = a.output.isError ? ' · ⚠️ **Lỗi phát hiện!**' : '';
+        L.push(`  * 📥 **Output:** \`${outTime}\` (ts: \`${a.output.ts}\`) | delta: \`+${delta}s\`${errAlert}`);
+        
+        const outputText = block(a.output);
+        if (outputText && outputText !== '_none_') {
+          const lines = outputText.split('\n');
+          const openAttr = a.output.isError ? ' open' : '';
+          L.push(`    <details${openAttr}>`);
+          L.push(`    <summary>📄 <i>Click to view output details (${lines.length} lines)</i></summary>`);
+          L.push('');
+          L.push(`    > ` + lines.join('\n    > '));
+          L.push('    </details>');
+        }
+      }
+    }
+
+    if (turn.taskProgress && turn.taskProgress.items.length) {
+      L.push('  * 📋 **Progress:**');
+      for (const it of turn.taskProgress.items) {
+        L.push(`    - [${it.done ? 'x' : ' '}] ${it.text}`);
+      }
+    }
+    if (turn.checkpoint) {
+      L.push(`  * 💾 **checkpoint:** \`${turn.checkpoint.hash}\``);
+    }
+    L.push('');
+  }
+
+  L.push('---');
+  L.push(`👉 *Xem báo cáo đầy đủ tại [flow_report.md](file:///e:/the.thoi/Project/cline-agent/cline-agent/flow_report.md).*`);
   L.push('');
   return L.join('\n');
 }

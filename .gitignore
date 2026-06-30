@@ -4,6 +4,7 @@ out/sidecar/
 flow_data.json
 flow_report.md
 *.txt
+error_report.md
 
 # Node.js dependencies
 node_modules/

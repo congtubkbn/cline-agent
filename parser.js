@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { load } from './src/loader.js';
 import { buildFlow } from './src/flow.js';
-import { renderMarkdown } from './src/render-md.js';
+import { renderMarkdown, renderErrorMarkdown } from './src/render-md.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -57,6 +57,12 @@ const markdownReport = renderMarkdown(flow);
 const flowReportPath = path.join(__dirname, 'flow_report.md');
 fs.writeFileSync(flowReportPath, markdownReport, 'utf-8');
 console.log('Saved flow report to:', flowReportPath);
+
+// Render and save error_report.md to workspace root
+const errorReport = renderErrorMarkdown(flow);
+const errorReportPath = path.join(__dirname, 'error_report.md');
+fs.writeFileSync(errorReportPath, errorReport, 'utf-8');
+console.log('Saved error report to:', errorReportPath);
 
 console.log('Parsing completed successfully.');
 

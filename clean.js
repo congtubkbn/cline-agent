@@ -9,6 +9,7 @@ const targets = [
   path.join(__dirname, 'out'),
   path.join(__dirname, 'flow_data.json'),
   path.join(__dirname, 'flow_report.md'),
+  path.join(__dirname, 'error_report.md'),
   path.join(__dirname, 'web/flow_data.json'),
   path.join(__dirname, 'web/sidecar')
 ];
