@@ -1,0 +1,123 @@
+---
+name: cline-agent
+description: >-
+  Drive the Cline Agent Loop Analyzer in this repo — clean generated artifacts or
+  run a live-debug session on a Cline execution log. Use this skill whenever the
+  user wants to analyze, debug, replay, or visualize a Cline agent run, parse a
+  `ui_messages.json` log folder, clean the analyzer output, or open the analyzer
+  dashboard at http://localhost:8099/. Triggers on phrases like "cline-agent",
+  "analyze this cline log", "live debug the agent loop", "clean the analyzer",
+  "parse my cline run", "open the cline dashboard", or any request to inspect a
+  Cline agent's reasoning/turns. Prefer this skill over running npm/node commands
+  by hand so the menu and the parse→serve→open flow stay consistent.
+---
+
+# Cline Agent Analyzer
+
+This skill runs the Cline Agent Loop Analyzer (this repository) for the user. It
+exposes two operations behind a menu: **Clean** (reset generated output) and
+**Live-debug** (parse a Cline log and open the interactive dashboard).
+
+The point of the menu is that these two jobs are mutually exclusive and easy to
+confuse — cleaning wipes generated files, live-debug produces them. Surfacing the
+choice up front prevents accidentally deleting a freshly-parsed run.
+
+## Step 1 — Present the menu
+
+When triggered without a clear operation already stated, ask the user to pick
+using the AskUserQuestion tool. Offer exactly these options:
+
+- **Clean** — run `npm run clean` to remove generated artifacts (`out/`,
+  `flow_data.json`, `flow_report.md`, `web/flow_data.json`, `web/sidecar/`).
+- **Live-debug** — ask for a Cline log folder, parse it, serve the dashboard, and
+  open it in the browser.
+
+If the user's message already makes the choice obvious (e.g. "clean the analyzer"
+or "debug this run at C:\logs\task123"), skip the menu and go straight to that
+operation. Don't ask redundant questions when intent is clear.
+
+## Step 2a — Clean
+
+Cleaning only removes regenerated output, never source code or the user's raw
+logs under `cline-log/`, so it's safe to run without a heavy confirmation. Run it
+from the repo root:
+
+```bash
+npm run clean
+```
+
+Report which artifacts were removed (the command prints them) and stop. Don't
+start the server after a clean.
+
+## Step 2b — Live-debug
+
+This is a three-part flow: **parse → serve → open**.
+
+### Get the log folder
+
+The parser needs a **folder**, not a single file. A valid Cline task folder
+contains `ui_messages.json`, and usually `api_conversation_history.json` and
+`task_metadata.json` alongside it. If the user names just `ui_messages.json`, use
+its parent directory.
+
+Ask for the folder path if it wasn't supplied. Accept either an absolute path
+(used directly) or a folder name that lives under `cline-log/` (the parser
+resolves it automatically). Before parsing, confirm the folder exists and
+contains `ui_messages.json`; if not, tell the user what's missing rather than
+running a parse that will throw.
+
+### Parse
+
+Run the parser with the folder as its argument. Quote the path — Windows paths
+contain spaces.
+
+```bash
+node parser.js "<log-folder-path>"
+```
+
+A successful run prints `Parsing completed successfully.` and writes
+`web/flow_data.json` plus sidecar files that the dashboard reads. If the parse
+fails, surface the error and stop — serving a stale or empty dataset is
+misleading.
+
+### Serve
+
+The dashboard is served by `serve.mjs` on port **8099**. The server is long-lived
+(it blocks), so start it in the background and leave it running:
+
+```bash
+node serve.mjs
+```
+
+If port 8099 is already serving (a server from an earlier run), reuse it — don't
+start a second one. A quick way to check is hitting `http://localhost:8099/`; a
+200 means it's already up.
+
+### Open the dashboard
+
+Open the URL in the user's default browser. On this Windows machine:
+
+```bash
+cmd.exe /c start "" "http://localhost:8099/"
+```
+
+(PowerShell equivalent: `Start-Process "http://localhost:8099/"`.)
+
+Then tell the user the dashboard is live at http://localhost:8099/ and that they
+can use the Simulator / Performance / Flowchart / Inspector tabs to step through
+the parsed run.
+
+## Re-parsing another log
+
+To analyze a different run while the server is already up: re-run
+`node parser.js "<new-folder>"` (this overwrites `web/flow_data.json`), then have
+the user refresh the browser. No need to restart the server.
+
+## Notes
+
+- Run all commands from the repo root (where `package.json`, `parser.js`, and
+  `serve.mjs` live).
+- `node` (v18+) must be on PATH. If it isn't, `parser.ps1` is a PowerShell
+  fallback for the parse step.
+- Raw logs and generated output are git-ignored on purpose (they may contain
+  sensitive trace content) — don't commit them.
