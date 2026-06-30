@@ -1,2 +1,16 @@
 cline-log/
 out/
+out/sidecar/
+flow_data.json
+flow_report.md
+*.txt
+
+# Node.js dependencies
+node_modules/
+
+# Sidecar generated files
+out/sidecar/*_req_request.txt
+out/sidecar/*_reason_reasoning.txt
+out/sidecar/*_out_output.txt
+out/sidecar/*_action_command.txt
+out/sidecar/*_completion.txt
