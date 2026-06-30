@@ -54,6 +54,7 @@
       "actions": [
         {
           "kind": "tool",
+          "ts": 1782757530543,
           "what": {
             "tool": "useSkill",
             "path": "qualcomm-case-agent"
@@ -124,6 +125,7 @@
       "actions": [
         {
           "kind": "command",
+          "ts": 1782757536894,
           "what": {
             "command": "node \".claude/skills/qualcomm-case-agent/scripts/intake.mjs\" \"08381225\""
           },
@@ -135,6 +137,7 @@
             "fullLen": 71
           },
           "output": {
+            "ts": 1782757537161,
             "preview": "intake OK 08381225\n",
             "summary": "",
             "sidecar": "",
@@ -214,6 +217,7 @@
       "actions": [
         {
           "kind": "command",
+          "ts": 1782757544836,
           "what": {
             "command": "powershell -ExecutionPolicy Bypass -File \".claude/skills/qualcomm-case-agent/scripts/connect_chrome.ps1\""
           },
@@ -225,6 +229,7 @@
             "fullLen": 104
           },
           "output": {
+            "ts": 1782757546152,
             "preview": "\nChrome CDP already listening on 9222 - reusing it. Profile: E:\\the.thoi\\Project\\access-qualcomm\\data\\chrome-profile\nNext: agent-browser connect \"ws://127.0.0.1:9222/devtools/browser/76a8038e-4287-4376-a3c4-1600315242ff\"",
             "summary": "",
             "sidecar": "",
@@ -304,6 +309,7 @@
       "actions": [
         {
           "kind": "command",
+          "ts": 1782757551658,
           "what": {
             "command": "agent-browser connect \"ws://127.0.0.1:9222/devtools/browser/76a8038e-4287-4376-a3c4-1600315242ff\""
           },
@@ -315,6 +321,7 @@
             "fullLen": 97
           },
           "output": {
+            "ts": 1782757551934,
             "preview": "✓ Done\n",
             "summary": "",
             "sidecar": "",
@@ -394,6 +401,7 @@
       "actions": [
         {
           "kind": "command",
+          "ts": 1782757558538,
           "what": {
             "command": "agent-browser open \"https://support.qualcomm.com/s/global-search/08381225\""
           },
@@ -405,6 +413,7 @@
             "fullLen": 74
           },
           "output": {
+            "ts": 1782757561841,
             "preview": "✓ Widget\n  https://support.qualcomm.com/s/global-search/08381225\n",
             "summary": "",
             "sidecar": "",
@@ -484,6 +493,7 @@
       "actions": [
         {
           "kind": "command",
+          "ts": 1782757568930,
           "what": {
             "command": "powershell -Command \"for ($i=1; $i -le 6; $i++) { $R = agent-browser eval --stdin < .claude/skills/qualcomm-case-agent/scripts/readiness.js; Write-Output $R; if ($R -match '\\\"state\\\":\\\"READY\\\"') { break }; if ($R -match '\\\"state\\\":\\\"EMPTY\\\"') { break }; if ($R -match '\\\"state\\\":\\\"AUTH\\\"') { break }; if ($R -match '\\\"state\\\":\\\"BLANK\\\"') { break }; if ($i -lt 6) { agent-browser wait 2000 } }\""
           },
@@ -495,6 +505,7 @@
             "fullLen": 393
           },
           "output": {
+            "ts": 1782757569360,
             "preview": "At line:1 char:62\n+ ... or ($i=1; $i -le 6; $i++) { $R = agent-browser eval --stdin < .claude ...\n+                                                                 ~\n\nThe '<' operator is reserved for future use.\n    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException\n    + FullyQualifiedErrorId : RedirectionNotSupported\n",
             "summary": "",
             "sidecar": "",
@@ -574,6 +585,7 @@
       "actions": [
         {
           "kind": "command",
+          "ts": 1782757575991,
           "what": {
             "command": "cmd /c \"agent-browser eval --stdin < .claude/skills/qualcomm-case-agent/scripts/readiness.js\""
           },
@@ -585,6 +597,7 @@
             "fullLen": 93
           },
           "output": {
+            "ts": 1782757576248,
             "preview": "{\n  \"host\": \"support.qualcomm.com\",\n  \"noResults\": false,\n  \"nodes\": 1619,\n  \"rows\": 6,\n  \"spinner\": 0,\n  \"state\": \"READY\",\n  \"title\": \"Search Results | 08381225\",\n  \"url\": \"https://support.qualcomm.com/s/global-search/08381225\"\n}\n",
             "summary": "",
             "sidecar": "",
@@ -664,6 +677,7 @@
       "actions": [
         {
           "kind": "command",
+          "ts": 1782757590468,
           "what": {
             "command": "agent-browser snapshot -c"
           },
@@ -675,6 +689,7 @@
             "fullLen": 25
           },
           "output": {
+            "ts": 1782757590752,
             "preview": "            - listitem [level=1]\n              - link \"Accessibility Statement\" [ref=e59]\n            - listitem [level=1]\n              - link \"Responsible AI Policy\" [ref=e60]\n        - button \"Language: English (US)\" [expanded=false, ref=e32]\n          - StaticText \"Language: English (US)\"\n          - menu\n            - menu\n              - heading \"Languages\" [level=3, ref=e69]\n              - list\n                - listitem [level=1]\n                  - link \"English ( United States )\" [ref=e79]\n                - listitem [level=1]\n                  - link \"简体中文 ( China )\" [ref=e80]\n        - paragraph\n        - paragraph\n        - paragraph\n          - StaticText \"Note: Certain services and materials may require you to accept additional terms and conditions before accessing or using…",
             "summary": "- listitem [level=1] - link \"Accessibility Statement\" [ref=e59] - listitem [level=1] - link \"Responsible AI Policy\" […",
             "sidecar": "sidecar/7_0_out_output.txt",
@@ -754,6 +769,7 @@
       "actions": [
         {
           "kind": "command",
+          "ts": 1782757597665,
           "what": {
             "command": "agent-browser click @e125"
           },
@@ -765,6 +781,7 @@
             "fullLen": 25
           },
           "output": {
+            "ts": 1782757602912,
             "preview": "✓ Done\n",
             "summary": "",
             "sidecar": "",
@@ -844,6 +861,7 @@
       "actions": [
         {
           "kind": "command",
+          "ts": 1782757608854,
           "what": {
             "command": "agent-browser eval \"(function(){ return location.href; })()\""
           },
@@ -855,6 +873,7 @@
             "fullLen": 60
           },
           "output": {
+            "ts": 1782757609115,
             "preview": "\"https://support.qualcomm.com/s/global-search/08381225\"\n",
             "summary": "",
             "sidecar": "",
@@ -934,6 +953,7 @@
       "actions": [
         {
           "kind": "command",
+          "ts": 1782757617121,
           "what": {
             "command": "agent-browser click @e136"
           },
@@ -945,6 +965,7 @@
             "fullLen": 25
           },
           "output": {
+            "ts": 1782757622493,
             "preview": "✓ Done\n",
             "summary": "",
             "sidecar": "",
@@ -1024,6 +1045,7 @@
       "actions": [
         {
           "kind": "command",
+          "ts": 1782757627732,
           "what": {
             "command": "agent-browser eval \"(function(){ return location.href; })()\""
           },
@@ -1035,6 +1057,7 @@
             "fullLen": 60
           },
           "output": {
+            "ts": 1782757628024,
             "preview": "\"https://support.qualcomm.com/s/case/500dK00000EvYEbQAN/p25101403285-a366-nz-ue-could-not-register-lte\"\n",
             "summary": "",
             "sidecar": "",
@@ -1114,6 +1137,7 @@
       "actions": [
         {
           "kind": "command",
+          "ts": 1782757634544,
           "what": {
             "command": "agent-browser snapshot -c"
           },
@@ -1125,6 +1149,7 @@
             "fullLen": 25
           },
           "output": {
+            "ts": 1782757634856,
             "preview": "  - StaticText \"Case: 08381225\"\n",
             "summary": "",
             "sidecar": "",
@@ -1204,6 +1229,7 @@
       "actions": [
         {
           "kind": "command",
+          "ts": 1782757644295,
           "what": {
             "command": "agent-browser snapshot -c | findstr /i \"View More\""
           },
@@ -1215,6 +1241,7 @@
             "fullLen": 50
           },
           "output": {
+            "ts": 1782757644578,
             "preview": "          - button \"More\" [expanded=false, ref=e84]\n            - StaticText \"More\"\n      - button \"Printable View\" [ref=e70]\n        - StaticText \"Printable View\"\n          - button \"Preview\" [ref=e86]\n            - StaticText \"Preview\"\n          - button \"Preview\" [ref=e87]\n            - StaticText \"Preview\"\n        - button \"More\" [expanded=false, ref=e33]\n            - button \"More\" [expanded=false, ref=e75]\n                            - StaticText \"1 view\"\n",
             "summary": "",
             "sidecar": "",
@@ -1294,6 +1321,7 @@
       "actions": [
         {
           "kind": "command",
+          "ts": 1782757651865,
           "what": {
             "command": "agent-browser click @e74"
           },
@@ -1305,6 +1333,7 @@
             "fullLen": 24
           },
           "output": {
+            "ts": 1782757657135,
             "preview": "✓ Done\n",
             "summary": "",
             "sidecar": "",
@@ -1384,6 +1413,7 @@
       "actions": [
         {
           "kind": "command",
+          "ts": 1782757664188,
           "what": {
             "command": "agent-browser click @e100"
           },
@@ -1395,6 +1425,7 @@
             "fullLen": 25
           },
           "output": {
+            "ts": 1782757669493,
             "preview": "✓ Done\n",
             "summary": "",
             "sidecar": "",
@@ -1474,6 +1505,7 @@
       "actions": [
         {
           "kind": "command",
+          "ts": 1782757675901,
           "what": {
             "command": "cmd /c \"mkdir data\\cases\\08381225\""
           },
@@ -1559,6 +1591,7 @@
       "actions": [
         {
           "kind": "command",
+          "ts": 1782757682394,
           "what": {
             "command": "agent-browser eval --stdin < .claude/skills/qualcomm-case-agent/scripts/extract_case.js > data/cases/08381225/case.raw.json"
           },
@@ -1644,6 +1677,7 @@
       "actions": [
         {
           "kind": "command",
+          "ts": 1782757688923,
           "what": {
             "command": "node \".claude/skills/qualcomm-case-agent/scripts/scrape_case.mjs\" 08381225 \"data/cases/08381225/case.raw.json\" --title \"P251014-03285 A366 NZ UE could not register LTE\" --status \"Closed-Customer Requested\" --priority \"2 - High\""
           },
@@ -1655,6 +1689,7 @@
             "fullLen": 227
           },
           "output": {
+            "ts": 1782757689256,
             "preview": "{\"code\":0,\"caseCode\":\"08381225\",\"commentCount\":2,\"hash\":\"771a7313a82d4a1d9951ed4cf49972e0fe969a0f90d6636652066bed84ece5f4\",\"path\":\"e:\\\\the.thoi\\\\Project\\\\access-qualcomm\\\\data\\\\cases\\\\08381225\\\\case.json\",\"warning\":\"empty header fields: customer\"}\n",
             "summary": "",
             "sidecar": "",
@@ -1734,6 +1769,7 @@
       "actions": [
         {
           "kind": "tool",
+          "ts": 1782757694993,
           "what": {
             "tool": "useSkill",
             "path": "qualcomm-enrich"
@@ -1820,6 +1856,7 @@
       "actions": [
         {
           "kind": "tool",
+          "ts": 1782757702956,
           "what": {
             "tool": "readFile",
             "path": "data/cases/08381225/case.json",
@@ -1910,6 +1947,7 @@
       "actions": [
         {
           "kind": "command",
+          "ts": 1782757729445,
           "what": {
             "command": "node -e \"const fs=require('fs'); const path='data/cases/08381225/case.json'; const c=JSON.parse(fs.readFileSync(path,'utf8')); const e={commentAnalyses:{c1:{summary:'Thien Tran acknowledged the case and committed to investigating the LTE attach failure. No technical substance — brief customer-facing response only.',role:'Info',keyPoints:[],citations:[],answered:true},c2:{summary:'Thien Tran reviewed the NAS/DS trace and concluded the LTE attach failed during ACL validation, because DS lacked valid ACL rules or MMGSDI status from UIM. Key evidence: after receiving CM_CALL_EVENT_GET_PDN_CONN_IND at 00:25:46.92, DS ran an ACL check that returned mmdsgi state 0,1 and failed, so DS never issued a PDN connectivity request to NAS. Because bootup logs are missing, the MMGSDI initialization phase cannot be confirmed. The case was cloned to 08387262 and handed to the UIM hotline team to verify that valid EF-ACL is present in the USIM and that ACL service info was delivered in the MMGSDI callback.',role:'Analysis',keyPoints:['DS Rx CM_CALL_EVENT_GET_PDN_CONN_IND at 00:25:46.92','ACL check returned mmdsgi state 0,1 and failed','DS had no valid ACL rules / MMGSDI status from UIM','NAS never triggered LTE attach because DS lacked PDN connectivity request','Case 08387262 cloned to UIM team for EF-ACL validation','Bootup logs missing, MMGSDI init phase unknown'],citations:['TS 24.301 — NAS attach and PDN connectivity request flow','TS 31.102 — EF-ACL (Access Control) in USIM'],answered:false}},engineerSummary:'This is a closed LTE attach failure on an NZ UE (Qualcomm SM6475) opened 2026-03-03 by Sang Bui (Samsung). The device successfully camped on WCDMA and could not transition to LTE because NAS sent a PDN connectivity request indication to DS, but DS never replied with a PDN connectivity request. Thien Tran (Qualcomm CE) analyzed the logs and concluded the attach was aborted inside DS during ACL (Access Control List) validation — DS did not hold valid ACL rules or a valid MMGSDI/EF-ACL status from UIM (mmdsgi state 0,1 at 00:25:46.92). Because bootup logs were not captured, the MMGSDI initialization phase cannot be reconstructed. The case was cloned to 08387262 and routed to the Qualcomm UIM hotline team; as-of the last comment, that team has not yet confirmed whether EF-ACL is present on the USIM or whether the ACL service info was provided in the MMGSDI callback.',currentStatus:'Stalled awaiting UIM team response on cloned case 08387262. Without confirmation of EF-ACL validity and the MMGSDI ACL callback result, the root cause cannot be closed.',rootCause:'ACL validation failure during LTE attach — DS lacks valid ACL rules/MMGSDI status from UIM, based on the failed ACL check and missing PDN connectivity request in trace. Hypothesis awaits UIM team confirmation and bootup logs for final proof.',caseFlow:[{step:1,phase:'Symptom',date:'2026-03-03',by:'Sang Bui',what:'UE camped on WCDMA but could not register in LTE PS domain; detach performed when moving to L. NAS sent PDN Conn Req Ind to DS but DS did not generate a PDN connectivity request, blocking LTE attach.',refComments:['c1']},{step:2,phase:'Analysis',date:'2026-03-05 00:14',by:'Thien Tran',what:'Confirmed DS received the attach request but attach failed during ACL validation. mmdsgi state 0,1 indicates UIM did not supply valid ACL rules/MMGSDI status. Cloned case 08387262 to UIM team for verification.',refComments:['c2']}],openQuestions:['UIM team has not confirmed whether valid EF-ACL is present in USIM','UIM team has not confirmed whether ACL service info was provided in the MMGSDI callback','MMGSDI initialization phase is unknown because bootup logs were not captured','Response still pending on cloned case 08387262'],recommendedActions:['Obtain bootup logs to inspect MMGSDI initialization sequence','Confirm from UIM team (08387262) the EF-ACL status and ACL service callback content','If EF-ACL is missing on the SIM, investigate provisioning or a defective USIM','Re-run the scenario with full QXDM log capture including bootup'],tags:['LTE','Attach','MMGSDI','ACL','EF-ACL','NAS','PS domain','SM6475'],timeline:[{date:'2026-03-05 00:14',event:'Thien Tran performed log analysis and cloned case 08387262 to the UIM hotline team.'},{date:'2026-03-03 23:11',event:'Sang Bui opened case with NAS/DS logs showing PDN Conn Req Ind without subsequent PDN connectivity request from DS.'}],enrichedAt:new Date().toISOString()}; c.enrichment=e; fs.writeFileSync(path,JSON.stringify(c,null,2)); console.log('ENRICHED OK')\""
           },
@@ -1921,6 +1959,7 @@
             "fullLen": 4532
           },
           "output": {
+            "ts": 1782757729745,
             "preview": "ENRICHED OK\n",
             "summary": "",
             "sidecar": "",
@@ -2000,6 +2039,7 @@
       "actions": [
         {
           "kind": "command",
+          "ts": 1782757737666,
           "what": {
             "command": "cmd /c \"del data\\cases\\08381225\\case.raw.json\""
           },
@@ -2085,6 +2125,7 @@
       "actions": [
         {
           "kind": "command",
+          "ts": 1782757747505,
           "what": {
             "command": "node \".claude/skills/qualcomm-case-agent/scripts/render_case.mjs\" \"data/cases/08381225/case.json\""
           },
@@ -2096,6 +2137,7 @@
             "fullLen": 97
           },
           "output": {
+            "ts": 1782757747822,
             "preview": "wrote:\n  data\\cases\\08381225\\case.report.md\n  data\\cases\\08381225\\case.md\n  data\\cases\\08381225\\case.html\n  data\\cases\\08381225\\case.txt\n",
             "summary": "",
             "sidecar": "",
@@ -2175,6 +2217,7 @@
       "actions": [
         {
           "kind": "command",
+          "ts": 1782757755225,
           "what": {
             "command": "agent-browser open \"file:///E:/the.thoi/Project/access-qualcomm/data/cases/08381225/case.html\""
           },
@@ -2186,6 +2229,7 @@
             "fullLen": 94
           },
           "output": {
+            "ts": 1782757755567,
             "preview": "✓ 08381225 — P251014-03285 A366 NZ UE could not register LTE\n  file:///E:/the.thoi/Project/access-qualcomm/data/cases/08381225/case.html\n",
             "summary": "",
             "sidecar": "",
@@ -2265,6 +2309,7 @@
       "actions": [
         {
           "kind": "command",
+          "ts": 1782757762955,
           "what": {
             "command": "agent-browser pdf \"data/cases/08381225/case.pdf\""
           },
@@ -2276,6 +2321,7 @@
             "fullLen": 48
           },
           "output": {
+            "ts": 1782757763506,
             "preview": "✓ PDF saved to data/cases/08381225/case.pdf\n",
             "summary": "",
             "sidecar": "",
@@ -2355,6 +2401,7 @@
       "actions": [
         {
           "kind": "command",
+          "ts": 1782757770029,
           "what": {
             "command": "node -e \"const fs=require('fs'); const idx='data/cases/_index.json'; const data=JSON.parse(fs.readFileSync(idx,'utf8')); data['08381225']={syncedAt:new Date().toISOString(),commentCount:2,hash:'771a7313a82d4a1d9951ed4cf49972e0fe969a0f90d6636652066bed84ece5f4',enrichedAt:new Date().toISOString()}; fs.writeFileSync(idx,JSON.stringify(data,null,2)); console.log('INDEX UPDATED')\""
           },
@@ -2366,6 +2413,7 @@
             "fullLen": 378
           },
           "output": {
+            "ts": 1782757770358,
             "preview": "INDEX UPDATED\n",
             "summary": "",
             "sidecar": "",
@@ -2445,6 +2493,7 @@
       "actions": [
         {
           "kind": "tool",
+          "ts": 1782757776817,
           "what": {
             "tool": "readFile",
             "path": "data/cases/08381225/case.report.md",

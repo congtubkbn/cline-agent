@@ -9,8 +9,8 @@ test('markdown shows prompt, turn headers, intents, completion', () => {
   const flow = buildFlow(run, { thresholdTokens: 200, sink: () => {} });
   const md = renderMarkdown(flow);
   assert.match(md, /qualcomm sync 08381225/);
-  assert.match(md, /## Turn 0/);
+  assert.match(md, /### 🔄 Turn 0/);
   assert.match(md, /Turn 28/);          // 29 turns => 0..28
-  assert.match(md, /\*\*why:\*\*/);     // intent rendered
-  assert.match(md, /## Completion/);
+  assert.match(md, /\*\*Why:\*\*/);     // intent rendered
+  assert.match(md, /## 4. 🏁 Kết quả hoàn thành \(Completion\)/);
 });
