@@ -11,10 +11,14 @@ export function buildFlow(run, { thresholdTokens = 200, perKind = {}, sink } = {
     const reasoningText = t.reasoning?.text || '';
     const actions = t.actions.map((a, ai) => ({
       kind: a.kind,
+      ts: a.ts,
       what: a.what,
       why: extractIntent(reasoningText, a),
       text: policy(`action_${a.kind}`, `${t.index}_${ai}`, a.text),
-      output: a.output ? policy('output', `${t.index}_${ai}_out`, a.output.text) : null
+      output: a.output ? {
+        ts: a.output.ts,
+        ...policy('output', `${t.index}_${ai}_out`, a.output.text)
+      } : null
     }));
     const d = t.request.data || {};
     return {
