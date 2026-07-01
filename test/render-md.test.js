@@ -13,4 +13,10 @@ test('markdown shows prompt, turn headers, intents, completion', () => {
   assert.match(md, /Turn 28/);          // 29 turns => 0..28
   assert.match(md, /\*\*Why:\*\*/);     // intent rendered
   assert.match(md, /## 4. 🏁 Completion Result/);
+  
+  // Verify API Request Prompt block is rendered
+  assert.match(md, /✉️ <b>API Request Prompt<\/b>/);
+
+  // Verify sidecar links are rendered as Markdown relative links rather than code backticks
+  assert.match(md, /\[sidecar\/.*_req_request\.txt\]\(sidecar\/.*_req_request\.txt\)/);
 });

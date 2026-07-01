@@ -1,7 +1,7 @@
 function block(b) {
   if (!b) return '_none_';
   let s = b.preview || '';
-  if (b.sidecar) s += `\n\n  > _summary:_ ${b.summary}  \n  > _full (${b.fullLen} chars):_ \`${b.sidecar}\``;
+  if (b.sidecar) s += `\n\n  > _summary:_ ${b.summary}  \n  > _full (${b.fullLen} chars):_ [${b.sidecar}](${b.sidecar})`;
   return s;
 }
 
@@ -65,6 +65,17 @@ export function renderMarkdown(flow) {
     const iconTurn = turn.hasError ? '❌' : '🔄';
     L.push(`### ${iconTurn} Turn ${turn.index}  ·  \`[${startStr} - ${endStr} | ts: ${turn.tsStart}]\`  ·  \`+${Math.round(turn.durationMs/1000)}s\`  ·  \`${turn.request.tokensIn}→${turn.request.tokensOut}\` tok`);
     
+    if (turn.request && (turn.request.text?.preview || turn.request.text?.sidecar)) {
+      L.push('<details>');
+      L.push('<summary>✉️ <b>API Request Prompt</b></summary>');
+      L.push('');
+      L.push(`> **Tokens In:** \`${turn.request.tokensIn}\` · **Cache Reads:** \`${turn.request.cacheReads}\` · **Cache Writes:** \`${turn.request.cacheWrites}\` · **Cost:** \`$${turn.request.cost.toFixed(4)}\``);
+      L.push('>');
+      L.push(`> ${block(turn.request.text).split('\n').join('\n> ')}`);
+      L.push('</details>');
+      L.push('');
+    }
+
     if (turn.reasoning) {
       L.push('<details>');
       L.push('<summary>🧠 <b>AI Reasoning</b></summary>');
@@ -152,6 +163,17 @@ export function renderErrorMarkdown(flow, workspaceRoot = null) {
     const endStr = formatFullTime(turn.tsEnd);
     L.push(`### ❌ Turn ${turn.index}  ·  \`[${startStr} - ${endStr} | ts: ${turn.tsStart}]\`  ·  \`+${Math.round(turn.durationMs/1000)}s\`  ·  \`${turn.request.tokensIn}→${turn.request.tokensOut}\` tok`);
     
+    if (turn.request && (turn.request.text?.preview || turn.request.text?.sidecar)) {
+      L.push('<details>');
+      L.push('<summary>✉️ <b>API Request Prompt</b></summary>');
+      L.push('');
+      L.push(`> **Tokens In:** \`${turn.request.tokensIn}\` · **Cache Reads:** \`${turn.request.cacheReads}\` · **Cache Writes:** \`${turn.request.cacheWrites}\` · **Cost:** \`$${turn.request.cost.toFixed(4)}\``);
+      L.push('>');
+      L.push(`> ${block(turn.request.text).split('\n').join('\n> ')}`);
+      L.push('</details>');
+      L.push('');
+    }
+
     if (turn.reasoning) {
       L.push('<details>');
       L.push('<summary>🧠 <b>AI Reasoning</b></summary>');
