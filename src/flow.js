@@ -71,6 +71,6 @@ export function buildFlow(run, { thresholdTokens = 200, perKind = {}, sink } = {
 
   return {
     taskId: run.taskId, model: run.model, prompt: run.prompt,
-    totals, stats, turns, completion, mermaid: toMermaid(rawTurns)
+    totals, stats, turns, completion, mermaid: toMermaid(turns)
   };
 }
