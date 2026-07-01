@@ -120,9 +120,18 @@ export function renderMarkdown(flow) {
   return L.join('\n');
 }
 
-export function renderErrorMarkdown(flow) {
+export function renderErrorMarkdown(flow, workspaceRoot = null) {
   const L = [];
   const errorTurns = flow.turns.filter(t => t.hasError);
+
+  let flowReportLink = 'flow_report.md';
+  if (workspaceRoot) {
+    const normalized = workspaceRoot.replace(/\\/g, '/');
+    // Ensure Windows drive letters (like e:) are preceded by a slash or properly formatted if needed.
+    // Standard file:/// URL format on Windows can be file:///E:/...
+    const prefix = normalized.startsWith('/') ? 'file://' : 'file:///';
+    flowReportLink = `${prefix}${normalized}/flow_report.md`;
+  }
 
   L.push(`# ❌ Agent Loop Error Report — Task: ${flow.taskId}`);
   L.push('');
@@ -130,7 +139,7 @@ export function renderErrorMarkdown(flow) {
   if (errorTurns.length === 0) {
     L.push('🎉 **Congratulations! No execution errors were detected in any of the turns for this task.**');
     L.push('');
-    L.push(`👉 *View the full report at [flow_report.md](file:///e:/the.thoi/Project/cline-agent/cline-agent/flow_report.md).*`);
+    L.push(`👉 *View the full report at [flow_report.md](${flowReportLink}).*`);
     L.push('');
     return L.join('\n');
   }
@@ -194,7 +203,7 @@ export function renderErrorMarkdown(flow) {
   }
 
   L.push('---');
-  L.push(`👉 *View the full report at [flow_report.md](file:///e:/the.thoi/Project/cline-agent/cline-agent/flow_report.md).*`);
+  L.push(`👉 *View the full report at [flow_report.md](${flowReportLink}).*`);
   L.push('');
   return L.join('\n');
 }

@@ -77,7 +77,7 @@ fs.writeFileSync(flowReportPath, markdownReport, 'utf-8');
 console.log('Saved flow report to:', flowReportPath);
 
 // Render and save error_report.md
-const errorReport = renderErrorMarkdown(flow);
+const errorReport = renderErrorMarkdown(flow, __dirname);
 const errorReportPath = path.join(taskDir, `${taskId}_error_report.md`);
 fs.writeFileSync(errorReportPath, errorReport, 'utf-8');
 console.log('Saved error report to:', errorReportPath);

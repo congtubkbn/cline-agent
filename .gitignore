@@ -15,3 +15,7 @@ out/sidecar/*_reason_reasoning.txt
 out/sidecar/*_out_output.txt
 out/sidecar/*_action_command.txt
 out/sidecar/*_completion.txt
+
+# Web app tasks catalog and parsed data folders
+web/tasks.json
+web/tasks/
