@@ -18,7 +18,7 @@ export function fromSkillContract(skillNames, skillRoots) {
       .find(p => fs.existsSync(path.join(p, 'SKILL.md')));
     if (!dir) continue;
     const md = fs.readFileSync(path.join(dir, 'SKILL.md'), 'utf-8');
-    md.split('\n')
+    md.split(/\r?\n/)
       .map(l => l.match(/^\s*(?:\d+\.|[-*])\s+(.{4,})$/))
       .filter(Boolean)
       .forEach((m, i) => steps.push({ id: `${name}-${i}`, what: m[1].trim(), why: '', skill: name }));

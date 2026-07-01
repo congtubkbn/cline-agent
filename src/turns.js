@@ -50,7 +50,7 @@ export function groupTurns(events) {
 
 export function parseChecklist(text) {
   if (!text) return [];
-  return text.split('\n')
+  return text.split(/\r?\n/)
     .map(l => l.match(/^- \[( |x|X)\]\s+(.*)$/))
     .filter(Boolean)
     .map(m => ({ done: m[1].toLowerCase() === 'x', text: m[2].trim() }));

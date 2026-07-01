@@ -1,0 +1,24 @@
+[
+  {
+    "taskId": "1782757522666",
+    "prompt": "qualcomm sync 08381225",
+    "model": "stepfun/step-3.7-flash",
+    "totals": {
+      "turns": 29,
+      "cost": 0,
+      "durationMs": 267551
+    },
+    "parsedAt": "2026-07-01T21:39:46.707Z"
+  },
+  {
+    "taskId": "1782836272713",
+    "prompt": "build expected prefers skill-contract",
+    "model": "gemini-3.5-flash",
+    "totals": {
+      "turns": 1,
+      "cost": 0.002,
+      "durationMs": 8000
+    },
+    "parsedAt": "2026-07-02T04:28:00Z"
+  }
+]

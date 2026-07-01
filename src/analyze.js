@@ -3,19 +3,13 @@ import { buildFlow } from './flow.js';
 import { buildExpected } from './expectation.js';
 import { conform, attribute } from './conformance.js';
 import { renderCompare } from './render-compare.js';
+import { parseChecklist } from './turns.js';
 
 // Collect every task_progress snapshot (ordered) from raw events.
 function progressSnapshots(run) {
   return run.events
     .filter(e => e.subtype === 'task_progress')
     .map(e => ({ items: parseChecklist(e.text) }));
-}
-function parseChecklist(text) {
-  if (!text) return [];
-  return text.split('\n')
-    .map(l => l.match(/^- \[( |x|X)\]\s+(.*)$/))
-    .filter(Boolean)
-    .map(m => ({ done: m[1].toLowerCase() === 'x', text: m[2].trim() }));
 }
 
 // Skill names invoked via useSkill tool actions.

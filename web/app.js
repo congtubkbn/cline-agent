@@ -6,6 +6,7 @@ let isPlaying = false;
 let tokenChartInstance = null;
 let costChartInstance = null;
 let cacheChartInstance = null;
+let currentTaskId = null;
 
 // DOM Elements
 const taskIdBadge = document.getElementById('task-id-badge');
@@ -42,6 +43,9 @@ const sidecarModal = document.getElementById('sidecar-modal');
 const sidecarFileContent = document.getElementById('sidecar-file-content');
 const btnCloseModal = document.getElementById('btn-close-modal');
 
+const taskSelectorContainer = document.getElementById('task-selector-container');
+const taskSelect = document.getElementById('task-select');
+
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
   fetchData();
@@ -59,6 +63,33 @@ function setupEventListeners() {
     setCurrentStep(parseInt(e.target.value));
     if (isPlaying) pause();
   });
+
+  // Task selector change
+  if (taskSelect) {
+    taskSelect.addEventListener('change', async (e) => {
+      const selectedId = e.target.value;
+      localStorage.setItem('selectedTaskId', selectedId);
+      currentTaskId = selectedId;
+      if (isPlaying) pause();
+      
+      // Load selected task data
+      try {
+        const response = await fetch(`./tasks/${encodeURIComponent(currentTaskId)}/flow_data.json`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        flowData = await response.json();
+        
+        // Reset and populate UI
+        populateOverview();
+        renderTimeline();
+        setupPlaybackSlider();
+        setCurrentStep(0);
+        setTimeout(initMermaid, 200);
+      } catch (err) {
+        console.error('Error switching task:', err);
+        alert('Failed to load selected task data.');
+      }
+    });
+  }
 
   // Tabs navigation
   const tabButtons = document.querySelectorAll('.tab-btn');
@@ -118,7 +149,46 @@ function setupEventListeners() {
 // Fetch Log Flow Data
 async function fetchData() {
   try {
-    const response = await fetch('./flow_data.json');
+    // 1. Try to load tasks list
+    let tasksList = [];
+    try {
+      const response = await fetch('./tasks.json');
+      if (response.ok) {
+        tasksList = await response.json();
+      }
+    } catch (e) {
+      console.log('No tasks.json catalog found, falling back to legacy flow_data.json');
+    }
+
+    let fetchUrl = './flow_data.json';
+
+    if (tasksList && tasksList.length > 0) {
+      taskSelectorContainer.style.display = 'flex';
+      taskSelect.innerHTML = '';
+      
+      tasksList.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.taskId;
+        const durationSec = Math.round((t.totals?.durationMs || 0) / 1000);
+        opt.textContent = `${t.taskId} - ${t.model} - ${t.totals?.turns} turns (${durationSec}s)`;
+        taskSelect.appendChild(opt);
+      });
+
+      // Restore last selected task or default to first
+      let lastTaskId = localStorage.getItem('selectedTaskId');
+      if (!lastTaskId || !tasksList.some(t => t.taskId === lastTaskId)) {
+        lastTaskId = tasksList[0].taskId;
+      }
+      taskSelect.value = lastTaskId;
+      currentTaskId = lastTaskId;
+
+      fetchUrl = `./tasks/${encodeURIComponent(currentTaskId)}/flow_data.json`;
+    } else {
+      taskSelectorContainer.style.display = 'none';
+      currentTaskId = null;
+    }
+
+    const response = await fetch(fetchUrl);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -129,7 +199,7 @@ async function fetchData() {
     setCurrentStep(0);
     setTimeout(initMermaid, 200);
   } catch (error) {
-    console.error('Error fetching flow_data.json:', error);
+    console.error('Error fetching flow data:', error);
     initialPrompt.textContent = 'Error loading data: Please make sure parser.js has run successfully.';
     initialPrompt.style.color = '#f43f5e';
   }
@@ -397,14 +467,17 @@ function updateActiveStepDetails() {
 async function openSidecarModal(sidecarPath) {
   sidecarFileContent.textContent = 'Loading sidecar file content...';
   sidecarModal.classList.add('active');
+  const targetUrl = currentTaskId 
+    ? `./tasks/${encodeURIComponent(currentTaskId)}/${sidecarPath}`
+    : `./${sidecarPath}`;
   try {
-    const res = await fetch(`./${sidecarPath}`);
+    const res = await fetch(targetUrl);
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     const text = await res.text();
     sidecarFileContent.textContent = text;
   } catch (e) {
     console.error('Error reading sidecar file:', e);
-    sidecarFileContent.textContent = `Error: Failed to load sidecar file at ./${sidecarPath}\nThe file might not have been created or the path is incorrect.`;
+    sidecarFileContent.textContent = `Error: Failed to load sidecar file at ${targetUrl}\nThe file might not have been created or the path is incorrect.`;
   }
 }
 
