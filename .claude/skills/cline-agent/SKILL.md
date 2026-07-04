@@ -76,9 +76,13 @@ node parser.js "<log-folder-path>"
 ```
 
 A successful run prints `Parsing completed successfully.` and writes
-`web/flow_data.json` plus sidecar files that the dashboard reads. If the parse
-fails, surface the error and stop — serving a stale or empty dataset is
-misleading.
+`web/flow_data.json` plus sidecar files that the dashboard reads. It also runs
+the analysis layer (plan conformance + fault tree analysis) and writes
+`<taskId>_analysis.json` (machine-readable, schema in `docs/analysis-schema.md`)
+and `<taskId>_analysis_report.md` (engineer report) next to the log. Mention
+these to the user — they are the evaluation outputs, and the dashboard's
+**Analysis** tab renders the same data. If the parse fails, surface the error
+and stop — serving a stale or empty dataset is misleading.
 
 ### Serve
 

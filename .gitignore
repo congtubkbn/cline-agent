@@ -19,3 +19,5 @@ out/sidecar/*_completion.txt
 # Web app tasks catalog and parsed data folders
 web/tasks.json
 web/tasks/
+analysis.json
+analysis_report.md

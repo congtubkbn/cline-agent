@@ -156,6 +156,7 @@
         <div class="panel-header">
           <div class="tabs-list">
             <button class="tab-btn active" data-tab="simulator"><i data-lucide="monitor"></i> Simulator</button>
+            <button class="tab-btn" data-tab="analysis"><i data-lucide="shield-alert"></i> Analysis</button>
             <button class="tab-btn" data-tab="analytics"><i data-lucide="bar-chart-2"></i> Performance</button>
             <button class="tab-btn" data-tab="mermaid"><i data-lucide="network"></i> Flowchart</button>
             <button class="tab-btn" data-tab="inspector"><i data-lucide="code-2"></i> Inspector</button>
@@ -222,6 +223,42 @@
                   <div class="checkpoint-view" id="sim-checkpoint">
                     <span class="hash">-</span>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab: Analysis (FTA & Findings) -->
+          <div class="tab-pane" id="tab-analysis">
+            <div class="analysis-layout">
+              <div class="analysis-verdict" id="analysis-verdict">
+                <span class="text-muted">Run the parser to generate analysis data.</span>
+              </div>
+
+              <div class="analysis-section">
+                <h4><i data-lucide="list-checks"></i> Findings</h4>
+                <div id="analysis-findings">
+                  <span class="text-muted">No analysis data loaded.</span>
+                </div>
+              </div>
+
+              <div class="analysis-section">
+                <h4><i data-lucide="lightbulb"></i> Recommendations (skill / workflow improvements)</h4>
+                <ul class="recommendation-list" id="analysis-recommendations">
+                  <li class="text-muted">No analysis data loaded.</li>
+                </ul>
+              </div>
+
+              <div class="analysis-section">
+                <h4><i data-lucide="git-fork"></i> Fault Tree (FTA)</h4>
+                <div class="mermaid-controls">
+                  <button class="btn btn-secondary" id="btn-render-fta"><i data-lucide="refresh-cw"></i> Refresh Fault Tree</button>
+                </div>
+                <div class="mermaid-render-box">
+                  <pre class="mermaid" id="fta-mermaid-code">
+                    flowchart TD
+                      TOP["No analysis data"]
+                  </pre>
                 </div>
               </div>
             </div>

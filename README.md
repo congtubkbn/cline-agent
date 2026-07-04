@@ -34,11 +34,19 @@ flowchart TD
     Flow --> |Text Thresholds| Policy[text-policy.js]
     Flow --> |Visual Flow| Diagram[diagram.js]
     
+    Flow --> |Expected vs Actual| Conf[expectation.js + conformance.js]
+    Flow --> |Fault Detection| FTA[fta.js]
+    Conf --> FTA
+    FTA --> |Findings & Recommendations| Report[report.js]
+    Report --> |Machine Contract| AJSON[analysis.json]
+    Report --> |Engineer Report| AMD[analysis_report.md]
+    
     Policy --> |Sidecar Texts| Sidecar[web/sidecar/*.txt]
     Flow --> |Flow Dataset| JSON[web/flow_data.json]
     Flow --> |Summary Report| MD[flow_report.md]
     
     JSON --> Web[Interactive Web UI]
+    AJSON --> Web
     Sidecar --> Web
 ```
 
@@ -70,6 +78,14 @@ flowchart TD
   - **`buildFlow(run, { thresholdTokens, perKind, sink })`**: Coordinates the entire pipeline. Aggregates totals (durations, costs, cache hits, token usage) and packages the turns list.
 - **`render-md.js`**
   - **`renderMarkdown(flow)`**: Converts the structured flow object into a readable markdown report with Mermaid blocks, summary tables, and sidecar file paths.
+- **`expectation.js` / `conformance.js` / `analyze.js`**
+  - Builds the *expected* plan (steps parsed from an invoked skill's `SKILL.md`, or the agent's first `task_progress` checklist), aligns it against what actually ran (plan adherence, plan evolution kept/dropped/added), and attributes every executed action to a plan phase (orphans = off-plan work).
+- **`fta.js`**
+  - **`buildFaultTree(flow, conformance)`**: Fault Tree Analysis — detects basic fault events (action errors, retry loops, dropped plan steps, off-plan actions, missing completion, unfinished checklists, duration/cost outliers), assembles them under OR/AND gates below a single top event, and computes minimal cut sets. Every basic event carries evidence refs (JSON paths into `flow_data.json`).
+  - **`ftaToMermaid(tree)`**: Renders the fault tree as a Mermaid diagram with severity-colored nodes.
+- **`report.js`**
+  - **`buildAnalysisRecord(...)`**: Folds flow + conformance + fault tree into one versioned `analysis.json` record — outcome status, 0–100 health score, metrics, plan adherence, ranked findings with evidence pointers, and per-target recommendations (skill / workflow / runtime). The machine-readable contract is documented in [`docs/analysis-schema.md`](docs/analysis-schema.md).
+  - **`renderAnalysisMarkdown(record)`**: The engineer-facing twin — verdict table, fault tree diagram, findings and recommendations as `analysis_report.md`.
 
 ### CLI Entrypoints
 - **`parser.js`**: Integrates the `src/` modules. Accepts command-line parameters to target specific log folders, builds the flow, and saves output to the root and `/web` directories.
@@ -90,6 +106,7 @@ The Web App located in `/web` is a modern, responsive Single Page Application (S
 - **Dynamic Tabs**:
   - **Simulator Tab**: Shows reasoning thought bubbles, action configurations, output logs, current task checklists, and git checkpoints.
   - **Performance Tab**: Renders Chart.js line charts tracking Token accumulation, Cost accumulation, and a doughnut chart showing Cache Hit distribution.
+  - **Analysis Tab**: The evaluation view — outcome verdict, health score, plan adherence, ranked findings with severity coloring (evidence links jump the Simulator to the offending turn), improvement recommendations per skill/workflow, and the rendered FTA fault tree.
   - **Flowchart Tab**: Renders a graph layout of execution nodes powered by Mermaid.js.
   - **Inspector Tab**: Shows the raw JSON tree of the selected step for details.
 - **Sidecar Modal Dialog**: When viewing truncated steps, clicking the **View full** link fetches and renders the complete sidecar text file asynchronously inside a dark-blur modal without reloading.

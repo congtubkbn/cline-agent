@@ -2,7 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { load } from './src/loader.js';
-import { buildFlow } from './src/flow.js';
+import { analyze } from './src/analyze.js';
+import { buildFaultTree, ftaToMermaid } from './src/fta.js';
+import { buildAnalysisRecord, renderAnalysisMarkdown } from './src/report.js';
 import { renderMarkdown, renderErrorMarkdown } from './src/render-md.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -50,18 +52,30 @@ if (!fs.existsSync(webSidecarDirLegacy)) {
 }
 
 console.log('Building flow data (threshold: 200 tokens)...');
-const flow = buildFlow(run, {
+const { flow, expected, conformance } = analyze(run, {
   thresholdTokens: 200,
+  skillRoots: [
+    path.join(__dirname, '.claude', 'skills'),
+    path.join(process.env.USERPROFILE || process.env.HOME || '', '.claude', 'skills')
+  ],
   sink: (sidecarId, text) => {
     // Write task-specific sidecars
     fs.writeFileSync(path.join(offlineSidecarDir, sidecarId), text, 'utf-8');
     fs.writeFileSync(path.join(webSidecarDir, sidecarId), text, 'utf-8');
-    
+
     // Write legacy sidecars for backward compatibility
     fs.writeFileSync(path.join(sidecarDir, sidecarId), text, 'utf-8');
     fs.writeFileSync(path.join(webSidecarDirLegacy, sidecarId), text, 'utf-8');
   }
 });
+
+console.log('Running fault tree analysis (FTA)...');
+const fta = buildFaultTree(flow, conformance);
+const ftaMermaid = ftaToMermaid(fta);
+const analysis = buildAnalysisRecord({ flow, expected, conformance, fta });
+// Embed in flow_data.json so the dashboard's Analysis tab can read it directly.
+flow.analysis = analysis;
+flow.ftaMermaid = ftaMermaid;
 
 // Save task-specific files
 const flowDataPath = path.join(taskDir, `${taskId}_flow_data.json`);
@@ -82,6 +96,19 @@ const errorReportPath = path.join(taskDir, `${taskId}_error_report.md`);
 fs.writeFileSync(errorReportPath, errorReport, 'utf-8');
 console.log('Saved error report to:', errorReportPath);
 
+// Save analysis record (machine-readable) and analysis report (engineer-readable)
+const analysisJson = JSON.stringify(analysis, null, 2);
+const analysisPath = path.join(taskDir, `${taskId}_analysis.json`);
+const webAnalysisPath = path.join(webTaskDir, 'analysis.json');
+fs.writeFileSync(analysisPath, analysisJson, 'utf-8');
+fs.writeFileSync(webAnalysisPath, analysisJson, 'utf-8');
+console.log('Saved analysis record to:', analysisPath, 'and', webAnalysisPath);
+
+const analysisReport = renderAnalysisMarkdown(analysis, { ftaMermaid });
+const analysisReportPath = path.join(taskDir, `${taskId}_analysis_report.md`);
+fs.writeFileSync(analysisReportPath, analysisReport, 'utf-8');
+console.log('Saved analysis report to:', analysisReportPath);
+
 // Write legacy files for backward compatibility
 const flowDataPathLegacy = path.join(__dirname, 'flow_data.json');
 const webFlowDataPathLegacy = path.join(webOutDir, 'flow_data.json');
@@ -93,6 +120,9 @@ fs.writeFileSync(flowReportPathLegacy, markdownReport, 'utf-8');
 
 const errorReportPathLegacy = path.join(__dirname, 'error_report.md');
 fs.writeFileSync(errorReportPathLegacy, errorReport, 'utf-8');
+
+fs.writeFileSync(path.join(__dirname, 'analysis.json'), analysisJson, 'utf-8');
+fs.writeFileSync(path.join(__dirname, 'analysis_report.md'), analysisReport, 'utf-8');
 
 // Update web/tasks.json catalog
 const tasksJsonPath = path.join(__dirname, 'web', 'tasks.json');
@@ -113,6 +143,12 @@ const taskMeta = {
     turns: flow.totals.turns,
     cost: flow.totals.cost,
     durationMs: flow.totals.durationMs
+  },
+  analysis: {
+    status: analysis.outcome.status,
+    healthScore: analysis.outcome.healthScore,
+    findings: analysis.findings.length,
+    planAdherence: analysis.plan ? analysis.plan.adherenceScore : null
   },
   parsedAt: new Date().toISOString()
 };
