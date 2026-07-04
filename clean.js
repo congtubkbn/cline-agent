@@ -10,6 +10,8 @@ const targets = [
   path.join(__dirname, 'flow_data.json'),
   path.join(__dirname, 'flow_report.md'),
   path.join(__dirname, 'error_report.md'),
+  path.join(__dirname, 'analysis.json'),
+  path.join(__dirname, 'analysis_report.md'),
   path.join(__dirname, 'web/flow_data.json'),
   path.join(__dirname, 'web/sidecar'),
   path.join(__dirname, 'web/tasks'),
@@ -50,7 +52,9 @@ if (fs.existsSync(clineLogDir)) {
           if (
             file.endsWith('_flow_data.json') ||
             file.endsWith('_flow_report.md') ||
-            file.endsWith('_error_report.md')
+            file.endsWith('_error_report.md') ||
+            file.endsWith('_analysis.json') ||
+            file.endsWith('_analysis_report.md')
           ) {
             fs.rmSync(filePath, { force: true });
             console.log(`Removed task output file: ${filePath}`);

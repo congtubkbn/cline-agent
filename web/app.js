@@ -80,6 +80,7 @@ function setupEventListeners() {
         
         // Reset and populate UI
         populateOverview();
+        renderAnalysisPanel();
         renderTimeline();
         setupPlaybackSlider();
         setCurrentStep(0);
@@ -114,6 +115,8 @@ function setupEventListeners() {
         setTimeout(drawCharts, 50);
       } else if (btn.dataset.tab === 'mermaid') {
         setTimeout(initMermaid, 50);
+      } else if (btn.dataset.tab === 'analysis') {
+        setTimeout(initFtaMermaid, 50);
       }
     });
   });
@@ -144,6 +147,9 @@ function setupEventListeners() {
 
   // Render Mermaid button
   document.getElementById('btn-render-mmd').addEventListener('click', initMermaid);
+
+  // Render FTA diagram button
+  document.getElementById('btn-render-fta').addEventListener('click', initFtaMermaid);
 }
 
 // Fetch Log Flow Data
@@ -194,6 +200,7 @@ async function fetchData() {
     }
     flowData = await response.json();
     populateOverview();
+    renderAnalysisPanel();
     renderTimeline();
     setupPlaybackSlider();
     setCurrentStep(0);
@@ -654,6 +661,128 @@ function drawCharts() {
       }
     }
   });
+}
+
+// --- Analysis tab (FTA & findings) ---
+
+const SEVERITY_META = {
+  critical: { icon: 'octagon-alert', cls: 'sev-critical' },
+  major: { icon: 'alert-triangle', cls: 'sev-major' },
+  minor: { icon: 'info', cls: 'sev-minor' }
+};
+
+const STATUS_META = {
+  completed: { label: 'Completed cleanly', cls: 'badge-emerald' },
+  completed_with_faults: { label: 'Completed with faults', cls: 'badge-amber' },
+  incomplete: { label: 'Incomplete', cls: 'badge-rose' }
+};
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+// Populate the Analysis tab from flowData.analysis (written by parser.js).
+function renderAnalysisPanel() {
+  const verdictBox = document.getElementById('analysis-verdict');
+  const findingsBox = document.getElementById('analysis-findings');
+  const recsBox = document.getElementById('analysis-recommendations');
+  if (!verdictBox) return;
+
+  const a = flowData && flowData.analysis;
+  if (!a) {
+    verdictBox.innerHTML = '<span class="text-muted">No analysis data in this flow_data.json — re-run parser.js to generate it.</span>';
+    findingsBox.innerHTML = '<span class="text-muted">No analysis data.</span>';
+    recsBox.innerHTML = '<li class="text-muted">No analysis data.</li>';
+    return;
+  }
+
+  // Verdict header
+  const st = STATUS_META[a.outcome.status] || STATUS_META.incomplete;
+  const sev = a.fta.severityCount;
+  const planHtml = a.plan
+    ? `<div class="verdict-item"><span class="verdict-label">Plan adherence</span><span class="verdict-value">${(a.plan.adherenceScore * 100).toFixed(0)}%<small> (${a.plan.source})</small></span></div>`
+    : '';
+  verdictBox.innerHTML = `
+    <div class="verdict-item">
+      <span class="verdict-label">Outcome</span>
+      <span class="badge ${st.cls}">${st.label}</span>
+    </div>
+    <div class="verdict-item">
+      <span class="verdict-label">Health score</span>
+      <span class="verdict-value health-${a.outcome.healthScore >= 80 ? 'good' : a.outcome.healthScore >= 50 ? 'warn' : 'bad'}">${a.outcome.healthScore}<small>/100</small></span>
+    </div>
+    ${planHtml}
+    <div class="verdict-item">
+      <span class="verdict-label">Findings</span>
+      <span class="verdict-value">🟥 ${sev.critical} · 🟧 ${sev.major} · 🟦 ${sev.minor}</span>
+    </div>
+  `;
+
+  // Findings cards — evidence refs jump the simulator to the referenced turn.
+  if (!a.findings.length) {
+    findingsBox.innerHTML = '<span class="text-muted">✅ No findings — clean run.</span>';
+  } else {
+    findingsBox.innerHTML = a.findings.map(f => {
+      const meta = SEVERITY_META[f.severity] || SEVERITY_META.minor;
+      const evHtml = [...new Set(f.evidence.map(e =>
+        e.turn != null
+          ? `<span class="evidence-link" onclick="jumpToTurn(${e.turn})" title="${escapeHtml(e.ref)}">Turn ${e.turn}</span>`
+          : `<code class="evidence-ref">${escapeHtml(e.ref)}</code>`
+      ))];
+      const evLinks = evHtml.slice(0, 6).join(' ');
+      const more = evHtml.length > 6 ? `<span class="text-muted"> +${evHtml.length - 6} more</span>` : '';
+      return `
+        <div class="finding-card ${meta.cls}">
+          <div class="finding-head">
+            <i data-lucide="${meta.icon}"></i>
+            <span class="finding-id">${f.id}</span>
+            <span class="badge badge-cat">${escapeHtml(f.category)}</span>
+            <span class="finding-sev">${f.severity}</span>
+          </div>
+          <div class="finding-title">${escapeHtml(f.title)}</div>
+          ${f.detail ? `<div class="finding-detail">${escapeHtml(f.detail)}</div>` : ''}
+          <div class="finding-evidence">Evidence: ${evLinks}${more}</div>
+          ${f.suggestion ? `<div class="finding-suggestion"><i data-lucide="lightbulb"></i> ${escapeHtml(f.suggestion)}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Recommendations
+  if (!a.recommendations.length) {
+    recsBox.innerHTML = '<li class="text-muted">Nothing to improve — clean run.</li>';
+  } else {
+    recsBox.innerHTML = a.recommendations.map(r => {
+      const target = r.targetName ? `${r.target}: ${r.targetName}` : r.target;
+      return `<li class="rec-${r.priority}"><span class="badge badge-cat">${escapeHtml(target)}</span> <strong>[${r.priority}]</strong> ${escapeHtml(r.text)} <em class="text-muted">(${r.findingIds.join(', ')})</em></li>`;
+    }).join('');
+  }
+
+  if (window.lucide) lucide.createIcons();
+}
+
+// Jump from a finding's evidence to the referenced turn in the Simulator tab.
+function jumpToTurn(turnIndex) {
+  const simBtn = document.querySelector('.tab-btn[data-tab="simulator"]');
+  if (simBtn) simBtn.click();
+  setCurrentStep(turnIndex);
+  if (isPlaying) pause();
+}
+window.jumpToTurn = jumpToTurn;
+
+// Render FTA Mermaid Diagram
+function initFtaMermaid() {
+  if (!flowData || !flowData.ftaMermaid || typeof mermaid === 'undefined') return;
+  const box = document.getElementById('fta-mermaid-code');
+  box.removeAttribute('data-processed');
+  box.textContent = flowData.ftaMermaid;
+  try {
+    mermaid.init(undefined, box);
+  } catch (err) {
+    console.error('FTA mermaid render error:', err);
+  }
 }
 
 // Render Mermaid Diagram
