@@ -710,6 +710,33 @@ input[type=range]::-webkit-slider-thumb:hover {
   color: var(--text-muted);
 }
 
+.timeline-ctx {
+  font-size: 10px;
+  color: var(--cyan);
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.sim-step-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.sim-step-stats .vital {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+}
+
 .timeline-title {
   font-size: 14px;
   font-weight: 600;

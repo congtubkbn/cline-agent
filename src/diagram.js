@@ -58,12 +58,23 @@ function turnLabel(t) {
 
   const turnText = t.hasError ? `❌ Turn ${t.index}` : `Turn ${t.index}`;
   const escHead = String(head).replace(/"/g, "'").replace(/[\n\r]/g, ' ');
-  
+  const stats = turnStats(t);
+
   if (summary) {
-    return `${turnText}: ${escHead}\\n(${summary})`;
+    return `${turnText}: ${escHead}\\n(${summary})\\n${stats}`;
   } else {
-    return `${turnText}: ${escHead}`;
+    return `${turnText}: ${escHead}\\n${stats}`;
   }
+}
+
+// Compact per-turn basics for the flow diagram: duration, tokens in→out,
+// and context window %. Lets a reader check a turn's vitals from the graph.
+function turnStats(t) {
+  const req = t.request || {};
+  const dur = `+${Math.round((t.durationMs || 0) / 1000)}s`;
+  const toks = `${req.tokensIn || 0}→${req.tokensOut || 0} tok`;
+  const ctx = req.contextWindow ? ` · ctx ${req.contextWindow.percent}%` : '';
+  return `⏱ ${dur} · ${toks}${ctx}`;
 }
 
 export function toMermaid(turns) {

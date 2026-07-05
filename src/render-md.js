@@ -5,6 +5,12 @@ function block(b) {
   return s;
 }
 
+function ctxHeader(req) {
+  const c = req && req.contextWindow;
+  if (!c) return '';
+  return `  ·  \`🪟 ${c.used.toLocaleString()}/${c.total} (${c.percent}%)\``;
+}
+
 function formatFullTime(ts) {
   if (!ts) return '_N/A_';
   const d = new Date(ts);
@@ -63,13 +69,13 @@ export function renderMarkdown(flow) {
     const startStr = formatFullTime(turn.tsStart);
     const endStr = formatFullTime(turn.tsEnd);
     const iconTurn = turn.hasError ? '❌' : '🔄';
-    L.push(`### ${iconTurn} Turn ${turn.index}  ·  \`[${startStr} - ${endStr} | ts: ${turn.tsStart}]\`  ·  \`+${Math.round(turn.durationMs/1000)}s\`  ·  \`${turn.request.tokensIn}→${turn.request.tokensOut}\` tok`);
-    
+    L.push(`### ${iconTurn} Turn ${turn.index}  ·  \`[${startStr} - ${endStr} | ts: ${turn.tsStart}]\`  ·  \`+${Math.round(turn.durationMs/1000)}s\`  ·  \`${turn.request.tokensIn}→${turn.request.tokensOut}\` tok${ctxHeader(turn.request)}`);
+
     if (turn.request && (turn.request.text?.preview || turn.request.text?.sidecar)) {
       L.push('<details>');
       L.push('<summary>✉️ <b>API Request Prompt</b></summary>');
       L.push('');
-      L.push(`> **Tokens In:** \`${turn.request.tokensIn}\` · **Cache Reads:** \`${turn.request.cacheReads}\` · **Cache Writes:** \`${turn.request.cacheWrites}\` · **Cost:** \`$${turn.request.cost.toFixed(4)}\``);
+      L.push(`> **Tokens In:** \`${turn.request.tokensIn}\` · **Cache Reads:** \`${turn.request.cacheReads}\` · **Cache Writes:** \`${turn.request.cacheWrites}\` · **Cost:** \`$${turn.request.cost.toFixed(4)}\`${turn.request.contextWindow ? ` · **Context Window:** \`${turn.request.contextWindow.raw}\`` : ''}`);
       L.push('>');
       L.push(`> ${block(turn.request.text).split('\n').join('\n> ')}`);
       L.push('</details>');
@@ -167,13 +173,13 @@ export function renderErrorMarkdown(flow, workspaceRoot = null) {
   for (const turn of errorTurns) {
     const startStr = formatFullTime(turn.tsStart);
     const endStr = formatFullTime(turn.tsEnd);
-    L.push(`### ❌ Turn ${turn.index}  ·  \`[${startStr} - ${endStr} | ts: ${turn.tsStart}]\`  ·  \`+${Math.round(turn.durationMs/1000)}s\`  ·  \`${turn.request.tokensIn}→${turn.request.tokensOut}\` tok`);
-    
+    L.push(`### ❌ Turn ${turn.index}  ·  \`[${startStr} - ${endStr} | ts: ${turn.tsStart}]\`  ·  \`+${Math.round(turn.durationMs/1000)}s\`  ·  \`${turn.request.tokensIn}→${turn.request.tokensOut}\` tok${ctxHeader(turn.request)}`);
+
     if (turn.request && (turn.request.text?.preview || turn.request.text?.sidecar)) {
       L.push('<details>');
       L.push('<summary>✉️ <b>API Request Prompt</b></summary>');
       L.push('');
-      L.push(`> **Tokens In:** \`${turn.request.tokensIn}\` · **Cache Reads:** \`${turn.request.cacheReads}\` · **Cache Writes:** \`${turn.request.cacheWrites}\` · **Cost:** \`$${turn.request.cost.toFixed(4)}\``);
+      L.push(`> **Tokens In:** \`${turn.request.tokensIn}\` · **Cache Reads:** \`${turn.request.cacheReads}\` · **Cache Writes:** \`${turn.request.cacheWrites}\` · **Cost:** \`$${turn.request.cost.toFixed(4)}\`${turn.request.contextWindow ? ` · **Context Window:** \`${turn.request.contextWindow.raw}\`` : ''}`);
       L.push('>');
       L.push(`> ${block(turn.request.text).split('\n').join('\n> ')}`);
       L.push('</details>');
