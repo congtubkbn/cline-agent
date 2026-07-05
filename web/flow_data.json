@@ -71,6 +71,7 @@
           "output": null
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -150,6 +151,7 @@
           }
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -245,6 +247,7 @@
           }
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -340,6 +343,7 @@
           }
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -435,6 +439,7 @@
           }
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -530,6 +535,7 @@
           }
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -625,6 +631,7 @@
           }
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -720,6 +727,7 @@
           }
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -815,6 +823,7 @@
           }
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -910,6 +919,7 @@
           }
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -1005,6 +1015,7 @@
           }
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -1100,6 +1111,7 @@
           }
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -1195,6 +1207,7 @@
           }
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -1290,6 +1303,7 @@
           }
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -1385,6 +1399,7 @@
           }
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -1480,6 +1495,7 @@
           }
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -1568,6 +1584,7 @@
           "output": null
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -1656,6 +1673,7 @@
           "output": null
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -1751,6 +1769,7 @@
           }
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -1840,6 +1859,7 @@
           "output": null
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -1933,6 +1953,7 @@
           "output": null
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -2028,6 +2049,7 @@
           }
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -2116,6 +2138,7 @@
           "output": null
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -2211,6 +2234,7 @@
           }
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -2306,6 +2330,7 @@
           }
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -2401,6 +2426,7 @@
           }
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -2496,6 +2522,7 @@
           }
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -2589,6 +2616,7 @@
           "output": null
         }
       ],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -2661,6 +2689,7 @@
       },
       "texts": [],
       "actions": [],
+      "errors": [],
       "taskProgress": {
         "items": [
           {
@@ -3066,7 +3095,7 @@
   },
   "analysis": {
     "schemaVersion": "1.0.0",
-    "generatedAt": "2026-07-05T22:07:18.046Z",
+    "generatedAt": "2026-07-05T22:13:57.346Z",
     "task": {
       "id": "1782757522666",
       "prompt": "qualcomm sync 08381225",

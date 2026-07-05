@@ -17,6 +17,7 @@ export const SEVERITY = { CRITICAL: 'critical', MAJOR: 'major', MINOR: 'minor' }
 
 const CATEGORY = {
   ACTION_ERROR: 'action-error',
+  TURN_ERROR: 'turn-error',
   RETRY_LOOP: 'retry-loop',
   PLAN_STEP_DROPPED: 'plan-step-dropped',
   OFF_PLAN_ACTION: 'off-plan-action',
@@ -74,6 +75,24 @@ function detectActionErrors(actions) {
   return [...bySig.entries()].map(([sig, ev]) =>
     basicEvent(`BE-ERR-${i++}`, CATEGORY.ACTION_ERROR, SEVERITY.MAJOR,
       `Action failed: ${sig} (×${ev.length})`, ev, actions.length));
+}
+
+// Standalone say:error events (e.g. tool blocked by mode) not tied to any
+// command/tool output — grouped by normalized message text.
+function detectTurnErrors(flow) {
+  const bySig = new Map();
+  for (const t of flow.turns) {
+    for (const [ei, err] of (t.errors || []).entries()) {
+      const text = (err.text?.preview || '').trim();
+      const sig = text.slice(0, 80);
+      if (!bySig.has(sig)) bySig.set(sig, []);
+      bySig.get(sig).push({ turn: t.index, action: null, ref: `turns[${t.index}].errors[${ei}]`, note: sig });
+    }
+  }
+  let i = 0;
+  return [...bySig.entries()].map(([sig, ev]) =>
+    basicEvent(`BE-TERR-${i++}`, CATEGORY.TURN_ERROR, SEVERITY.MAJOR,
+      `Turn error: ${sig}${sig.length === 80 ? '…' : ''} (×${ev.length})`, ev, flow.turns.length));
 }
 
 // Consecutive repeats of the same action signature with at least one error in
@@ -190,7 +209,7 @@ function gate(id, label, children) {
 export function buildFaultTree(flow, conformance = null) {
   const actions = flatActions(flow);
   const branches = [
-    gate('G-EXEC', 'Execution faults', [...detectActionErrors(actions), ...detectRetryLoops(actions)]),
+    gate('G-EXEC', 'Execution faults', [...detectActionErrors(actions), ...detectTurnErrors(flow), ...detectRetryLoops(actions)]),
     gate('G-PLAN', 'Plan deviation', detectPlanDeviation(conformance)),
     gate('G-OUTCOME', 'Incomplete outcome', detectOutcomeFaults(flow)),
     gate('G-PERF', 'Efficiency degradation', detectPerfOutliers(flow))

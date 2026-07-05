@@ -13,6 +13,7 @@ export function groupTurns(events) {
         reasoning: null,
         texts: [],
         actions: [],
+        errors: [],
         taskProgress: null,
         checkpoint: null
       };
@@ -54,6 +55,9 @@ export function groupTurns(events) {
         }
         break;
       }
+      case 'error':
+        cur.errors.push({ ts: e.ts, text: e.text });
+        break;
       case 'task_progress':
         cur.taskProgress = { ts: e.ts, text: e.text, items: parseChecklist(e.text) };
         break;

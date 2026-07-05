@@ -3,7 +3,7 @@ import path from 'node:path';
 
 const KNOWN_SAY = new Set([
   'task','api_req_started','reasoning','text','tool','task_progress',
-  'command','checkpoint_created','completion_result'
+  'command','checkpoint_created','completion_result','error'
 ]);
 const KNOWN_ASK = new Set(['tool','command_output','completion_result']);
 
