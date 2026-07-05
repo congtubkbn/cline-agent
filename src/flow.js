@@ -25,7 +25,11 @@ export function buildFlow(run, { thresholdTokens = 200, perKind = {}, sink } = {
         } : null
       };
     });
-    const turnHasError = actions.some(act => act.output && act.output.isError);
+    const errors = t.errors.map((er, ei) => ({
+      ts: er.ts,
+      text: policy('error', `${t.index}_${ei}_err`, er.text)
+    }));
+    const turnHasError = errors.length > 0 || actions.some(act => act.output && act.output.isError);
     const d = t.request.data || {};
     return {
       index: t.index,
@@ -38,6 +42,7 @@ export function buildFlow(run, { thresholdTokens = 200, perKind = {}, sink } = {
       },
       reasoning: reasoningText ? policy('reasoning', `${t.index}_reason`, reasoningText) : null,
       actions,
+      errors,
       taskProgress: t.taskProgress ? { items: t.taskProgress.items } : null,
       checkpoint: t.checkpoint ? { hash: t.checkpoint.hash, checkedOut: t.checkpoint.checkedOut } : null
     };

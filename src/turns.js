@@ -12,6 +12,7 @@ export function groupTurns(events) {
         request: { ts: e.ts, data: e.data || {}, text: e.text },
         reasoning: null,
         actions: [],
+        errors: [],
         taskProgress: null,
         checkpoint: null
       };
@@ -33,9 +34,15 @@ export function groupTurns(events) {
         break;
       case 'command_output': {
         const last = cur.actions[cur.actions.length - 1];
-        if (last) last.output = { ts: e.ts, text: e.text };
+        if (last) {
+          if (last.output) last.output.text += e.text;
+          else last.output = { ts: e.ts, text: e.text };
+        }
         break;
       }
+      case 'error':
+        cur.errors.push({ ts: e.ts, text: e.text });
+        break;
       case 'task_progress':
         cur.taskProgress = { ts: e.ts, text: e.text, items: parseChecklist(e.text) };
         break;
