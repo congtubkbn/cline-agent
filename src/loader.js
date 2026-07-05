@@ -2,10 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const KNOWN_SAY = new Set([
-  'task','api_req_started','reasoning','tool','task_progress',
+  'task','api_req_started','reasoning','text','tool','task_progress',
   'command','checkpoint_created','completion_result','error'
 ]);
-const KNOWN_ASK = new Set(['command_output','completion_result','tool']);
+const KNOWN_ASK = new Set(['tool','command_output','completion_result']);
 
 // subtypes whose text field is JSON-encoded
 const JSON_TEXT = new Set(['api_req_started','tool']);
@@ -20,7 +20,9 @@ export function load(taskDir) {
   const metaPath = path.join(taskDir, 'task_metadata.json');
   const meta = fs.existsSync(metaPath) ? readJson(metaPath) : { files_in_context: [] };
 
-  const events = ui.map((m, i) => {
+  // partial:true entries are unfinished streaming placeholders; the final
+  // version of the same message is written with partial:false.
+  const events = ui.filter(m => !m.partial).map((m, i) => {
     const subtype = m.type === 'say' ? m.say : m.ask;
     const known = m.type === 'say' ? KNOWN_SAY.has(subtype) : KNOWN_ASK.has(subtype);
     let data = null;

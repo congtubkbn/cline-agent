@@ -85,6 +85,12 @@ export function renderMarkdown(flow) {
       L.push('');
     }
 
+    for (const s of (turn.texts || [])) {
+      L.push(`> 💬 **Agent:** ${block(s).split('\n').join('\n> ')}`);
+      L.push(`> — \`${formatFullTime(s.ts)}\` (ts: \`${s.ts}\`)`);
+      L.push('');
+    }
+
     for (const a of turn.actions) {
       const what = a.kind === 'tool' ? `${a.what.tool} ${a.what.path || ''}`.trim() : a.what.command;
       const actionTime = formatFullTime(a.ts);
@@ -180,6 +186,12 @@ export function renderErrorMarkdown(flow, workspaceRoot = null) {
       L.push('');
       L.push(`> ${block(turn.reasoning).split('\n').join('\n> ')}`);
       L.push('</details>');
+      L.push('');
+    }
+
+    for (const s of (turn.texts || [])) {
+      L.push(`> 💬 **Agent:** ${block(s).split('\n').join('\n> ')}`);
+      L.push(`> — \`${formatFullTime(s.ts)}\` (ts: \`${s.ts}\`)`);
       L.push('');
     }
 
