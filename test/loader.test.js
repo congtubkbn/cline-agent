@@ -5,7 +5,8 @@ import { load } from '../src/loader.js';
 test('load decodes, joins, and tags subtypes', () => {
   const run = load('test/fixtures/mini');
   assert.equal(run.taskId, 'mini');
-  assert.equal(run.events.length, 6);
+  assert.equal(run.events.length, 9, 'partial entries are dropped');
+  assert.ok(run.events.every(e => ['task','api_req_started','reasoning','text','command','command_output','completion_result'].includes(e.subtype)));
   // first event is the task prompt
   assert.equal(run.events[0].subtype, 'task');
   assert.equal(run.events[0].text, 'do the thing');

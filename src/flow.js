@@ -37,6 +37,7 @@ export function buildFlow(run, { thresholdTokens = 200, perKind = {}, sink } = {
         text: policy('request', `${t.index}_req`, d.request || '')
       },
       reasoning: reasoningText ? policy('reasoning', `${t.index}_reason`, reasoningText) : null,
+      texts: t.texts.map((x, i) => ({ ts: x.ts, ...policy('say_text', `${t.index}_say${i}`, x.text) })),
       actions,
       taskProgress: t.taskProgress ? { items: t.taskProgress.items } : null,
       checkpoint: t.checkpoint ? { hash: t.checkpoint.hash, checkedOut: t.checkpoint.checkedOut } : null

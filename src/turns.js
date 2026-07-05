@@ -11,6 +11,7 @@ export function groupTurns(events) {
         tsStart: e.ts, tsEnd: e.ts, durationMs: 0,
         request: { ts: e.ts, data: e.data || {}, text: e.text },
         reasoning: null,
+        texts: [],
         actions: [],
         taskProgress: null,
         checkpoint: null
@@ -23,7 +24,12 @@ export function groupTurns(events) {
     cur.durationMs = cur.tsEnd - cur.tsStart;
     switch (e.subtype) {
       case 'reasoning':
-        cur.reasoning = { ts: e.ts, text: e.text };
+        cur.reasoning = cur.reasoning
+          ? { ts: e.ts, text: cur.reasoning.text + '\n\n' + e.text }
+          : { ts: e.ts, text: e.text };
+        break;
+      case 'text':
+        cur.texts.push({ ts: e.ts, text: e.text });
         break;
       case 'tool':
         cur.actions.push({ kind: 'tool', ts: e.ts, what: e.data || {}, text: e.text, why: null, output: null });
@@ -33,7 +39,19 @@ export function groupTurns(events) {
         break;
       case 'command_output': {
         const last = cur.actions[cur.actions.length - 1];
-        if (last) last.output = { ts: e.ts, text: e.text };
+        if (!last) break;
+        const chunk = e.text || '';
+        if (!last.output) {
+          last.output = { ts: e.ts, text: chunk };
+        } else {
+          // Streamed output arrives as multiple events. A re-sent event
+          // carries the accumulated text so far as its prefix; otherwise
+          // it is a fresh continuation chunk.
+          last.output.ts = e.ts;
+          last.output.text = chunk.startsWith(last.output.text)
+            ? chunk
+            : last.output.text + chunk;
+        }
         break;
       }
       case 'task_progress':
