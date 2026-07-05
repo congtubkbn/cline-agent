@@ -3,9 +3,9 @@ import path from 'node:path';
 
 const KNOWN_SAY = new Set([
   'task','api_req_started','reasoning','tool','task_progress',
-  'command','checkpoint_created','completion_result'
+  'command','checkpoint_created','completion_result','error'
 ]);
-const KNOWN_ASK = new Set(['command_output','completion_result']);
+const KNOWN_ASK = new Set(['command_output','completion_result','tool']);
 
 // subtypes whose text field is JSON-encoded
 const JSON_TEXT = new Set(['api_req_started','tool']);
