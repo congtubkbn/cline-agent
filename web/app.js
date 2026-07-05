@@ -30,6 +30,7 @@ const playbackSpeedSelect = document.getElementById('playback-speed');
 
 const simStepBadge = document.getElementById('sim-step-badge');
 const simStepTitle = document.getElementById('sim-step-title');
+const simStepStats = document.getElementById('sim-step-stats');
 const simReasoning = document.getElementById('sim-reasoning');
 const simAction = document.getElementById('sim-action');
 const simOutput = document.getElementById('sim-output');
@@ -315,6 +316,7 @@ function renderTimeline() {
         <div class="timeline-meta">
           <span class="timeline-step">TURN ${step.index}</span>
           <span class="timeline-time">${elapsed}</span>
+          ${step.request?.contextWindow ? `<span class="timeline-ctx" title="Context Window Usage">🪟 ${step.request.contextWindow.percent}%</span>` : ''}
         </div>
         <div class="timeline-title">${label}</div>
         <div class="timeline-desc">${desc}</div>
@@ -386,6 +388,20 @@ function updateActiveStepDetails() {
     typeLabel = step.actions[0].kind === 'command' ? 'Execute Terminal Command' : 'Call Extension Tool';
   }
   simStepTitle.textContent = `${typeLabel} (${elapsed})`;
+
+  // Turn vitals: duration, tokens in→out, context window
+  if (simStepStats) {
+    const req = step.request || {};
+    const dur = `+${Math.round((step.durationMs || 0) / 1000)}s`;
+    const cw = req.contextWindow;
+    simStepStats.innerHTML = `
+      <span class="vital"><i data-lucide="clock" style="width:12px;height:12px;"></i> ${dur}</span>
+      <span class="vital"><i data-lucide="arrow-right-left" style="width:12px;height:12px;"></i> ${req.tokensIn || 0}→${req.tokensOut || 0} tok</span>
+      <span class="vital" title="ts: ${step.tsStart}"><i data-lucide="hash" style="width:12px;height:12px;"></i> ${step.tsStart}</span>
+      ${cw ? `<span class="vital" title="Context Window Usage">🪟 ${cw.used.toLocaleString()}/${cw.total} (${cw.percent}%)</span>` : ''}
+    `;
+    lucide.createIcons();
+  }
 
   // Reasoning
   if (step.reasoning) {

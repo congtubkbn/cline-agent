@@ -4,6 +4,21 @@ import { makeTextPolicy } from './text-policy.js';
 import { toMermaid } from './diagram.js';
 import { detectError } from './errors.js';
 
+// Cline appends a "# Context Window Usage" line to each request's
+// environment_details, e.g. "19,427 / 256K tokens used (8%)". It reflects the
+// context size entering this turn. Parse it from the raw request text.
+export function parseContextWindow(reqText) {
+  if (!reqText) return null;
+  const m = reqText.match(/#\s*Context Window Usage\s*\r?\n\s*([\d,]+)\s*\/\s*([\d.]+\s*[KM]?)\s*tokens used\s*\(([\d.]+)\s*%\)/i);
+  if (!m) return null;
+  return {
+    used: parseInt(m[1].replace(/,/g, ''), 10),
+    total: m[2].replace(/\s+/g, ''),
+    percent: parseFloat(m[3]),
+    raw: `${m[1]} / ${m[2].replace(/\s+/g, '')} tokens used (${m[3]}%)`
+  };
+}
+
 export function buildFlow(run, { thresholdTokens = 200, perKind = {}, sink } = {}) {
   const policy = makeTextPolicy({ thresholdTokens, perKind, sink });
   const rawTurns = groupTurns(run.events);
@@ -38,6 +53,7 @@ export function buildFlow(run, { thresholdTokens = 200, perKind = {}, sink } = {
       request: {
         tokensIn: d.tokensIn || 0, tokensOut: d.tokensOut || 0, cost: d.cost || 0,
         cacheReads: d.cacheReads || 0, cacheWrites: d.cacheWrites || 0,
+        contextWindow: parseContextWindow(d.request),
         text: policy('request', `${t.index}_req`, d.request || '')
       },
       reasoning: reasoningText ? policy('reasoning', `${t.index}_reason`, reasoningText) : null,

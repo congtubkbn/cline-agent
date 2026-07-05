@@ -14,7 +14,24 @@
       "findings": 4,
       "planAdherence": 0.6
     },
-    "parsedAt": "2026-07-05T22:13:57.375Z"
+    "parsedAt": "2026-07-05T22:37:51.251Z"
+  },
+  {
+    "taskId": "1782836272713",
+    "prompt": "phân tích cách chạy clean.js",
+    "model": "stepfun/step-3.7-flash",
+    "totals": {
+      "turns": 8,
+      "cost": 0,
+      "durationMs": 112906
+    },
+    "analysis": {
+      "status": "completed_with_faults",
+      "healthScore": 80,
+      "findings": 2,
+      "planAdherence": 1
+    },
+    "parsedAt": "2026-07-05T22:37:31.324Z"
   },
   {
     "taskId": "1782757930684",
@@ -31,17 +48,6 @@
       "findings": 5,
       "planAdherence": 0.83
     },
-    "parsedAt": "2026-07-05T22:13:56.749Z"
-  },
-  {
-    "taskId": "1782836272713",
-    "prompt": "build expected prefers skill-contract",
-    "model": "gemini-3.5-flash",
-    "totals": {
-      "turns": 1,
-      "cost": 0.002,
-      "durationMs": 8000
-    },
-    "parsedAt": "2026-07-02T04:28:00Z"
+    "parsedAt": "2026-07-05T22:37:31.189Z"
   }
 ]
