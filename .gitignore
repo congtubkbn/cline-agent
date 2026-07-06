@@ -9,6 +9,9 @@ error_report.md
 # Node.js dependencies
 node_modules/
 
+# Packaged distribution (rebuild with `npm run package`)
+dist/
+
 # Sidecar generated files
 out/sidecar/*_req_request.txt
 out/sidecar/*_reason_reasoning.txt

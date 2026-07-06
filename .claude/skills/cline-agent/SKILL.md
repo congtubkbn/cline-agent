@@ -5,22 +5,26 @@ description: >-
   run a live-debug session on a Cline execution log. Use this skill whenever the
   user wants to analyze, debug, replay, or visualize a Cline agent run, parse a
   `ui_messages.json` log folder, clean the analyzer output, or open the analyzer
-  dashboard at http://localhost:8099/. Triggers on phrases like "cline-agent",
-  "analyze this cline log", "live debug the agent loop", "clean the analyzer",
-  "parse my cline run", "open the cline dashboard", or any request to inspect a
-  Cline agent's reasoning/turns. Prefer this skill over running npm/node commands
-  by hand so the menu and the parse→serve→open flow stay consistent.
+  dashboard at http://localhost:8099/, or build the shareable single-file
+  installer. Triggers on phrases like "cline-agent", "analyze this cline log",
+  "live debug the agent loop", "clean the analyzer", "parse my cline run",
+  "open the cline dashboard", "package the analyzer", "build the installer",
+  or any request to inspect a Cline agent's reasoning/turns. Prefer this skill
+  over running npm/node commands by hand so the menu and the parse→serve→open
+  flow stay consistent.
 ---
 
 # Cline Agent Analyzer
 
 This skill runs the Cline Agent Loop Analyzer (this repository) for the user. It
-exposes two operations behind a menu: **Clean** (reset generated output) and
-**Live-debug** (parse a Cline log and open the interactive dashboard).
+exposes three operations behind a menu: **Clean** (reset generated output),
+**Live-debug** (parse a Cline log and open the interactive dashboard), and
+**Package** (build the single-file installer to share with other machines).
 
-The point of the menu is that these two jobs are mutually exclusive and easy to
-confuse — cleaning wipes generated files, live-debug produces them. Surfacing the
-choice up front prevents accidentally deleting a freshly-parsed run.
+The point of the menu is that Clean and Live-debug are mutually exclusive and
+easy to confuse — cleaning wipes generated files, live-debug produces them.
+Surfacing the choice up front prevents accidentally deleting a freshly-parsed
+run.
 
 ## Step 1 — Present the menu
 
@@ -31,6 +35,8 @@ using the AskUserQuestion tool. Offer exactly these options:
   `flow_data.json`, `flow_report.md`, `web/flow_data.json`, `web/sidecar/`).
 - **Live-debug** — ask for a Cline log folder, parse it, serve the dashboard, and
   open it in the browser.
+- **Package** — run `npm run package` to build the shareable installer
+  (`dist/cline-agent-installer.mjs`).
 
 If the user's message already makes the choice obvious (e.g. "clean the analyzer"
 or "debug this run at C:\logs\task123"), skip the menu and go straight to that
@@ -110,6 +116,24 @@ cmd.exe /c start "" "http://localhost:8099/"
 Then tell the user the dashboard is live at http://localhost:8099/ and that they
 can use the Simulator / Performance / Flowchart / Inspector tabs to step through
 the parsed run.
+
+## Step 2c — Package
+
+Build the distributable single-file installer from the repo root:
+
+```bash
+npm run package
+```
+
+(If it fails because `esbuild` is missing, run `npm install` first, then retry.)
+
+The build bundles and minifies the app (`src/` gets inlined into the entry
+points) and writes `dist/cline-agent-installer.mjs`. Tell the user that this
+one file is all they need to share: on the other machine,
+`node cline-agent-installer.mjs` installs the app to `~/.cline-agent-analyzer`
+and the `cline-agent` skill to `~/.claude/skills/cline-agent/`. After source
+changes, re-running Package and re-sharing the new installer is the whole
+release flow. Details live in `docs/packaging.md`.
 
 ## Re-parsing another log
 
