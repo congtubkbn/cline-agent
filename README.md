@@ -13,7 +13,8 @@ This project processes raw trace streams, extracts key performance metrics, perf
 4. [Getting Started & Setup Guide](#getting-started--setup-guide)
 5. [How to Analyze a New Log](#how-to-analyze-a-new-log)
 6. [Testing Workflow](#testing-workflow)
-7. [Git Exclusions & Confidentiality](#git-exclusions--confidentiality)
+7. [Packaging & Distribution](#packaging--distribution)
+8. [Git Exclusions & Confidentiality](#git-exclusions--confidentiality)
 
 ---
 
@@ -183,6 +184,27 @@ Expected output:
 ℹ pass 10
 ℹ fail 0
 ```
+
+---
+
+## Packaging & Distribution
+
+To share the analyzer with other machines **without shipping the source tree**, build the single-file installer:
+
+```bash
+npm install        # once, installs esbuild
+npm run package
+```
+
+This bundles and minifies everything (`src/` is inlined into `parser.js` / `clean.js` / `serve.mjs`) and emits **`dist/cline-agent-installer.mjs`** — the only file you need to share. On the target machine:
+
+```bash
+node cline-agent-installer.mjs
+```
+
+installs the app to `~/.cline-agent-analyzer` and the `cline-agent` skill to `~/.claude/skills/cline-agent/`, so the recipient drives everything through their agent (Claude Code / Cline) via the skill. After changing source code here, just re-run `npm run package` and re-share the new installer — re-running it upgrades the app and skill in place.
+
+See [docs/packaging.md](docs/packaging.md) for installer flags (`--app-dir`, `--project`, `--no-skill`, `--force`) and the full release workflow.
 
 ---
 

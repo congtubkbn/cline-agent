@@ -5,6 +5,10 @@
   "scripts": {
     "test": "node --test",
     "parse": "node parser.js",
-    "clean": "node clean.js"
+    "clean": "node clean.js",
+    "package": "node scripts/build-installer.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1"
   }
 }

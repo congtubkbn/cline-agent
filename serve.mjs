@@ -1,5 +1,5 @@
-import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path';
-const root='web';
+import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
+const root=path.join(path.dirname(fileURLToPath(import.meta.url)),'web');
 http.createServer((q,s)=>{
   let f=path.join(root, q.url==='/'?'index.html':decodeURIComponent(q.url.slice(1)));
   fs.readFile(f,(e,d)=>{
