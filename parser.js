@@ -6,6 +6,8 @@ import { analyze } from './src/analyze.js';
 import { buildFaultTree, ftaToMermaid } from './src/fta.js';
 import { buildAnalysisRecord } from './src/report.js';
 import { renderMarkdown, renderErrorMarkdown } from './src/render-md.js';
+import { renderHtml } from './src/render-html.js';
+import { withSidecarHeader } from './src/sidecar.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,6 +54,7 @@ if (!fs.existsSync(webSidecarDirLegacy)) {
 }
 
 console.log('Building flow data (threshold: 200 tokens)...');
+const sidecarTexts = {};
 const { flow, expected, conformance } = analyze(run, {
   thresholdTokens: 200,
   skillRoots: [
@@ -59,13 +62,21 @@ const { flow, expected, conformance } = analyze(run, {
     path.join(process.env.USERPROFILE || process.env.HOME || '', '.claude', 'skills')
   ],
   sink: (sidecarId, text) => {
+    // Keep the raw full text for inline embedding in the HTML report (keyed by
+    // the same `sidecar/...` path the flow blocks reference).
+    sidecarTexts[`sidecar/${sidecarId}`] = text;
+
+    // On-disk sidecars get a provenance banner so, opened standalone, the file
+    // says which turn it belongs to and links back to the report.
+    const withHeader = withSidecarHeader(sidecarId, taskId, text);
+
     // Write task-specific sidecars
-    fs.writeFileSync(path.join(offlineSidecarDir, sidecarId), text, 'utf-8');
-    fs.writeFileSync(path.join(webSidecarDir, sidecarId), text, 'utf-8');
+    fs.writeFileSync(path.join(offlineSidecarDir, sidecarId), withHeader, 'utf-8');
+    fs.writeFileSync(path.join(webSidecarDir, sidecarId), withHeader, 'utf-8');
 
     // Write legacy sidecars for backward compatibility
-    fs.writeFileSync(path.join(sidecarDir, sidecarId), text, 'utf-8');
-    fs.writeFileSync(path.join(webSidecarDirLegacy, sidecarId), text, 'utf-8');
+    fs.writeFileSync(path.join(sidecarDir, sidecarId), withHeader, 'utf-8');
+    fs.writeFileSync(path.join(webSidecarDirLegacy, sidecarId), withHeader, 'utf-8');
   }
 });
 
@@ -90,6 +101,14 @@ const flowReportPath = path.join(taskDir, `${taskId}_flow_report.md`);
 fs.writeFileSync(flowReportPath, markdownReport, 'utf-8');
 console.log('Saved flow report to:', flowReportPath);
 
+// Render and save flow_report.html (single-file debug view)
+const htmlReport = renderHtml(flow, { sidecars: sidecarTexts });
+const flowReportHtmlPath = path.join(taskDir, `${taskId}_flow_report.html`);
+const webFlowReportHtmlPath = path.join(webTaskDir, 'flow_report.html');
+fs.writeFileSync(flowReportHtmlPath, htmlReport, 'utf-8');
+fs.writeFileSync(webFlowReportHtmlPath, htmlReport, 'utf-8');
+console.log('Saved HTML report to:', flowReportHtmlPath, 'and', webFlowReportHtmlPath);
+
 // Render and save error_report.md
 const errorReport = renderErrorMarkdown(flow, __dirname);
 const errorReportPath = path.join(taskDir, `${taskId}_error_report.md`);
@@ -112,6 +131,11 @@ fs.writeFileSync(webFlowDataPathLegacy, JSON.stringify(flow, null, 2), 'utf-8');
 
 const flowReportPathLegacy = path.join(__dirname, 'flow_report.md');
 fs.writeFileSync(flowReportPathLegacy, markdownReport, 'utf-8');
+
+const flowReportHtmlLegacy = path.join(__dirname, 'flow_report.html');
+const webFlowReportHtmlLegacy = path.join(webOutDir, 'flow_report.html');
+fs.writeFileSync(flowReportHtmlLegacy, htmlReport, 'utf-8');
+fs.writeFileSync(webFlowReportHtmlLegacy, htmlReport, 'utf-8');
 
 const errorReportPathLegacy = path.join(__dirname, 'error_report.md');
 fs.writeFileSync(errorReportPathLegacy, errorReport, 'utf-8');

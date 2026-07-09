@@ -9,9 +9,11 @@ const targets = [
   path.join(__dirname, 'out'),
   path.join(__dirname, 'flow_data.json'),
   path.join(__dirname, 'flow_report.md'),
+  path.join(__dirname, 'flow_report.html'),
   path.join(__dirname, 'error_report.md'),
   path.join(__dirname, 'analysis.json'),
   path.join(__dirname, 'web/flow_data.json'),
+  path.join(__dirname, 'web/flow_report.html'),
   path.join(__dirname, 'web/sidecar'),
   path.join(__dirname, 'web/tasks'),
   path.join(__dirname, 'web/tasks.json')
@@ -51,6 +53,7 @@ if (fs.existsSync(clineLogDir)) {
           if (
             file.endsWith('_flow_data.json') ||
             file.endsWith('_flow_report.md') ||
+            file.endsWith('_flow_report.html') ||
             file.endsWith('_error_report.md') ||
             file.endsWith('_analysis.json')
           ) {

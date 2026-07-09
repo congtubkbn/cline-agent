@@ -32,7 +32,8 @@ When triggered without a clear operation already stated, ask the user to pick
 using the AskUserQuestion tool. Offer exactly these options:
 
 - **Clean** — run `npm run clean` to remove generated artifacts (`out/`,
-  `flow_data.json`, `flow_report.md`, `web/flow_data.json`, `web/sidecar/`).
+  `flow_data.json`, `flow_report.md`, `flow_report.html`, `web/flow_data.json`,
+  `web/sidecar/`).
 - **Live-debug** — ask for a Cline log folder, parse it, serve the dashboard, and
   open it in the browser.
 - **Package** — run `npm run package` to build the shareable installer
@@ -82,11 +83,17 @@ node parser.js "<log-folder-path>"
 ```
 
 A successful run prints `Parsing completed successfully.` and writes
-`web/flow_data.json` plus sidecar files that the dashboard reads. It also runs
-the analysis layer (plan conformance + fault tree analysis) and writes
-`<taskId>_analysis.json` (machine-readable, schema in `docs/analysis-schema.md`)
-and `<taskId>_analysis_report.md` (engineer report) next to the log. Mention
-these to the user — they are the evaluation outputs, and the dashboard's
+`web/flow_data.json` plus sidecar files that the dashboard reads. It also writes
+two per-run reports next to the log: `<taskId>_flow_report.md` (for git/sharing;
+has a jump-to-turn TOC and collapsible turn bodies) and `<taskId>_flow_report.html`
+— a single self-contained file built for debugging: sticky turn index, an
+errors-only filter, `#turn-N` deep links, and an in-page modal for full text (no
+new tabs). Point users at the HTML when a run is long and they need to navigate;
+sidecar `.txt` files carry a banner naming their turn and linking back to the
+report. It also runs the analysis layer (plan conformance + fault tree analysis)
+and writes `<taskId>_analysis.json` (machine-readable, schema in
+`docs/analysis-schema.md`) and `<taskId>_analysis_report.md` (engineer report).
+Mention these to the user — they are the evaluation outputs, and the dashboard's
 **Analysis** tab renders the same data. If the parse fails, surface the error
 and stop — serving a stale or empty dataset is misleading.
 

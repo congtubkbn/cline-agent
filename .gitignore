@@ -3,6 +3,8 @@ out/
 out/sidecar/
 flow_data.json
 flow_report.md
+flow_report.html
+web/flow_report.html
 *.txt
 error_report.md
 

@@ -20,3 +20,20 @@ test('markdown shows prompt, turn headers, intents, completion', () => {
   // Verify sidecar links are rendered as Markdown relative links rather than code backticks
   assert.match(md, /\[sidecar\/.*_req_request\.txt\]\(sidecar\/.*_req_request\.txt\)/);
 });
+
+test('markdown has a jump-to-turn TOC, per-turn anchors, and collapsible bodies', () => {
+  const run = load('cline-log/1782757522666');
+  const flow = buildFlow(run, { thresholdTokens: 200, sink: () => {} });
+  const md = renderMarkdown(flow);
+
+  // TOC anchor + a row linking to turn 0
+  assert.match(md, /<a id="toc-turns"><\/a>/);
+  assert.match(md, /\[Turn 0\]\(#turn-0\)/);
+  // Explicit per-turn anchor so #turn-N deep-links resolve cleanly
+  assert.match(md, /<a id="turn-0"><\/a>/);
+  // Body collapsed inside <details>, with a back-to-index link
+  assert.match(md, /<details( open)?>\n<summary>/);
+  assert.match(md, /\[↑ index\]\(#toc-turns\)/);
+  // Completion is anchorable from a sidecar back-link
+  assert.match(md, /<a id="completion"><\/a>/);
+});

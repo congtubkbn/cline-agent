@@ -33,6 +33,127 @@ function formatDateTime(ts) {
   return `${YYYY}-${MM}-${DD} ${hh}:${mm}:${ss}`;
 }
 
+// Short scannable label for a turn's actions — used in the TOC row and the
+// collapsed <summary> so a reader knows what a turn did without expanding it.
+function actionSummary(turn) {
+  const acts = (turn.actions || []).map(a => {
+    const icon = a.kind === 'tool' ? '🛠️' : '💻';
+    const what = a.kind === 'tool' ? (a.what.tool || 'tool') : String(a.what.command || '').split(/\s+/).slice(0, 2).join(' ');
+    return `${icon} ${what}`.trim();
+  });
+  const errs = (turn.actions || []).filter(a => a.output && a.output.isError).length;
+  let s = acts.length ? acts.join(' · ') : '💬 no action';
+  if (s.length > 70) s = s.slice(0, 67) + '…';
+  if (errs) s += ` · ⚠️ ${errs} error`;
+  return s;
+}
+
+// The one-line heading string for a turn (without the leading `### `).
+function turnHeadingText(turn) {
+  const startStr = formatFullTime(turn.tsStart);
+  const endStr = formatFullTime(turn.tsEnd);
+  const iconTurn = turn.hasError ? '❌' : '🔄';
+  return `${iconTurn} Turn ${turn.index}  ·  \`[${startStr} - ${endStr} | ts: ${turn.tsStart}]\`  ·  \`+${Math.round(turn.durationMs/1000)}s\`  ·  \`${turn.request.tokensIn}→${turn.request.tokensOut}\` tok${ctxHeader(turn.request)}`;
+}
+
+// Table-of-contents so long reports are navigable: each row jumps to `#turn-N`.
+function pushToc(L, turns) {
+  L.push('<a id="toc-turns"></a>');
+  L.push('');
+  L.push('| Turn | What it did | Δt | Tokens | |');
+  L.push('| :-- | :-- | :-- | :-- | :-: |');
+  for (const t of turns) {
+    const status = t.hasError ? '❌' : '✅';
+    const summ = actionSummary(t).replace(/\|/g, '\\|');
+    L.push(`| [Turn ${t.index}](#turn-${t.index}) | ${summ} | \`+${Math.round(t.durationMs/1000)}s\` | \`${t.request.tokensIn}→${t.request.tokensOut}\` | ${status} |`);
+  }
+  L.push('');
+}
+
+// Render the collapsible body of a single turn (request, reasoning, agent
+// messages, actions, progress, checkpoint). The heading + anchor are emitted by
+// the caller so the anchor stays a real Markdown heading (auto-linkable).
+function pushTurnBody(L, turn) {
+  if (turn.request && (turn.request.text?.preview || turn.request.text?.sidecar)) {
+    L.push('<details>');
+    L.push('<summary>✉️ <b>API Request Prompt</b></summary>');
+    L.push('');
+    L.push(`> **Tokens In:** \`${turn.request.tokensIn}\` · **Cache Reads:** \`${turn.request.cacheReads}\` · **Cache Writes:** \`${turn.request.cacheWrites}\` · **Cost:** \`$${turn.request.cost.toFixed(4)}\`${turn.request.contextWindow ? ` · **Context Window:** \`${turn.request.contextWindow.raw}\`` : ''}`);
+    L.push('>');
+    L.push(`> ${block(turn.request.text).split('\n').join('\n> ')}`);
+    L.push('</details>');
+    L.push('');
+  }
+
+  if (turn.reasoning) {
+    L.push('<details>');
+    L.push('<summary>🧠 <b>AI Reasoning</b></summary>');
+    L.push('');
+    L.push(`> ${block(turn.reasoning).split('\n').join('\n> ')}`);
+    L.push('</details>');
+    L.push('');
+  }
+
+  for (const s of (turn.texts || [])) {
+    L.push(`> 💬 **Agent:** ${block(s).split('\n').join('\n> ')}`);
+    L.push(`> — \`${formatFullTime(s.ts)}\` (ts: \`${s.ts}\`)`);
+    L.push('');
+  }
+
+  for (const a of turn.actions) {
+    const what = a.kind === 'tool' ? `${a.what.tool} ${a.what.path || ''}`.trim() : a.what.command;
+    const actionTime = formatFullTime(a.ts);
+    const icon = a.kind === 'tool' ? '🛠️' : '💻';
+
+    L.push(`* ${icon} **${a.kind}:** \`${what}\``);
+    L.push(`  * ⏱️ **Time:** \`${actionTime}\` (ts: \`${a.ts}\`)`);
+    if (a.why) {
+      L.push(`  * 🎯 **Why:** ${a.why}`);
+    }
+    if (a.output) {
+      const outTime = formatFullTime(a.output.ts);
+      const delta = ((a.output.ts - a.ts) / 1000).toFixed(2);
+      const errAlert = a.output.isError ? ' · ⚠️ **Error Detected!**' : '';
+      L.push(`  * 📥 **Output:** \`${outTime}\` (ts: \`${a.output.ts}\`) | delta: \`+${delta}s\`${errAlert}`);
+
+      const outputText = block(a.output);
+      if (outputText && outputText !== '_none_') {
+        const lines = outputText.split('\n');
+        const openAttr = a.output.isError ? ' open' : '';
+        L.push(`    <details${openAttr}>`);
+        L.push(`    <summary>📄 <i>Click to view output details (${lines.length} lines)</i></summary>`);
+        L.push('');
+        L.push(`    > ` + lines.join('\n    > '));
+        L.push('    </details>');
+      }
+    }
+  }
+
+  if (turn.taskProgress && turn.taskProgress.items.length) {
+    L.push('  * 📋 **Progress:**');
+    for (const it of turn.taskProgress.items) {
+      L.push(`    - [${it.done ? 'x' : ' '}] ${it.text}`);
+    }
+  }
+  if (turn.checkpoint) {
+    L.push(`  * 💾 **checkpoint:** \`${turn.checkpoint.hash}\``);
+  }
+}
+
+// Emit anchor + heading + a body collapsed inside <details>. Error turns are
+// expanded by default so failures are visible without a click.
+function pushTurn(L, turn) {
+  L.push(`<a id="turn-${turn.index}"></a>`);
+  L.push(`### ${turnHeadingText(turn)}  ·  [↑ index](#toc-turns)`);
+  L.push('');
+  L.push(`<details${turn.hasError ? ' open' : ''}>`);
+  L.push(`<summary>${actionSummary(turn)}</summary>`);
+  L.push('');
+  pushTurnBody(L, turn);
+  L.push('</details>');
+  L.push('');
+}
+
 export function renderMarkdown(flow) {
   const L = [];
   const firstTurn = flow.turns[0];
@@ -57,6 +178,8 @@ export function renderMarkdown(flow) {
   L.push(`| **Cache Read/Write** | Read: \`${t.cacheReads.toLocaleString()}\` · Write: \`${t.cacheWrites.toLocaleString()}\` |`);
   L.push(`| **Cost** | \`$${t.cost.toFixed(4)}\` |`);
   L.push('');
+  L.push('> 💡 Big run? Open `flow_report.html` for a sticky turn index, error filter, and in-page full-text viewer (no new tabs).');
+  L.push('');
   L.push('## 2. 🗺️ Flow Diagram');
   L.push('```mermaid');
   L.push(flow.mermaid);
@@ -64,79 +187,14 @@ export function renderMarkdown(flow) {
   L.push('');
   L.push('## 3. 🔍 Detailed Execution Turns');
   L.push('');
+  L.push('**Turn index** — click a turn to jump; bodies are collapsed (❌ turns auto-expand).');
+  L.push('');
+  pushToc(L, flow.turns);
 
   for (const turn of flow.turns) {
-    const startStr = formatFullTime(turn.tsStart);
-    const endStr = formatFullTime(turn.tsEnd);
-    const iconTurn = turn.hasError ? '❌' : '🔄';
-    L.push(`### ${iconTurn} Turn ${turn.index}  ·  \`[${startStr} - ${endStr} | ts: ${turn.tsStart}]\`  ·  \`+${Math.round(turn.durationMs/1000)}s\`  ·  \`${turn.request.tokensIn}→${turn.request.tokensOut}\` tok${ctxHeader(turn.request)}`);
-
-    if (turn.request && (turn.request.text?.preview || turn.request.text?.sidecar)) {
-      L.push('<details>');
-      L.push('<summary>✉️ <b>API Request Prompt</b></summary>');
-      L.push('');
-      L.push(`> **Tokens In:** \`${turn.request.tokensIn}\` · **Cache Reads:** \`${turn.request.cacheReads}\` · **Cache Writes:** \`${turn.request.cacheWrites}\` · **Cost:** \`$${turn.request.cost.toFixed(4)}\`${turn.request.contextWindow ? ` · **Context Window:** \`${turn.request.contextWindow.raw}\`` : ''}`);
-      L.push('>');
-      L.push(`> ${block(turn.request.text).split('\n').join('\n> ')}`);
-      L.push('</details>');
-      L.push('');
-    }
-
-    if (turn.reasoning) {
-      L.push('<details>');
-      L.push('<summary>🧠 <b>AI Reasoning</b></summary>');
-      L.push('');
-      L.push(`> ${block(turn.reasoning).split('\n').join('\n> ')}`);
-      L.push('</details>');
-      L.push('');
-    }
-
-    for (const s of (turn.texts || [])) {
-      L.push(`> 💬 **Agent:** ${block(s).split('\n').join('\n> ')}`);
-      L.push(`> — \`${formatFullTime(s.ts)}\` (ts: \`${s.ts}\`)`);
-      L.push('');
-    }
-
-    for (const a of turn.actions) {
-      const what = a.kind === 'tool' ? `${a.what.tool} ${a.what.path || ''}`.trim() : a.what.command;
-      const actionTime = formatFullTime(a.ts);
-      const icon = a.kind === 'tool' ? '🛠️' : '💻';
-      
-      L.push(`* ${icon} **${a.kind}:** \`${what}\``);
-      L.push(`  * ⏱️ **Time:** \`${actionTime}\` (ts: \`${a.ts}\`)`);
-      if (a.why) {
-        L.push(`  * 🎯 **Why:** ${a.why}`);
-      }
-      if (a.output) {
-        const outTime = formatFullTime(a.output.ts);
-        const delta = ((a.output.ts - a.ts) / 1000).toFixed(2);
-        const errAlert = a.output.isError ? ' · ⚠️ **Error Detected!**' : '';
-        L.push(`  * 📥 **Output:** \`${outTime}\` (ts: \`${a.output.ts}\`) | delta: \`+${delta}s\`${errAlert}`);
-        
-        const outputText = block(a.output);
-        if (outputText && outputText !== '_none_') {
-          const lines = outputText.split('\n');
-          const openAttr = a.output.isError ? ' open' : '';
-          L.push(`    <details${openAttr}>`);
-          L.push(`    <summary>📄 <i>Click to view output details (${lines.length} lines)</i></summary>`);
-          L.push('');
-          L.push(`    > ` + lines.join('\n    > '));
-          L.push('    </details>');
-        }
-      }
-    }
-
-    if (turn.taskProgress && turn.taskProgress.items.length) {
-      L.push('  * 📋 **Progress:**');
-      for (const it of turn.taskProgress.items) {
-        L.push(`    - [${it.done ? 'x' : ' '}] ${it.text}`);
-      }
-    }
-    if (turn.checkpoint) {
-      L.push(`  * 💾 **checkpoint:** \`${turn.checkpoint.hash}\``);
-    }
-    L.push('');
+    pushTurn(L, turn);
   }
+  L.push('<a id="completion"></a>');
   L.push('## 4. 🏁 Completion Result');
   L.push(block(flow.completion));
   L.push('');
@@ -169,77 +227,10 @@ export function renderErrorMarkdown(flow, workspaceRoot = null) {
 
   L.push(`Detected **${errorTurns.length}** turns with technical errors:`);
   L.push('');
+  pushToc(L, errorTurns);
 
   for (const turn of errorTurns) {
-    const startStr = formatFullTime(turn.tsStart);
-    const endStr = formatFullTime(turn.tsEnd);
-    L.push(`### ❌ Turn ${turn.index}  ·  \`[${startStr} - ${endStr} | ts: ${turn.tsStart}]\`  ·  \`+${Math.round(turn.durationMs/1000)}s\`  ·  \`${turn.request.tokensIn}→${turn.request.tokensOut}\` tok${ctxHeader(turn.request)}`);
-
-    if (turn.request && (turn.request.text?.preview || turn.request.text?.sidecar)) {
-      L.push('<details>');
-      L.push('<summary>✉️ <b>API Request Prompt</b></summary>');
-      L.push('');
-      L.push(`> **Tokens In:** \`${turn.request.tokensIn}\` · **Cache Reads:** \`${turn.request.cacheReads}\` · **Cache Writes:** \`${turn.request.cacheWrites}\` · **Cost:** \`$${turn.request.cost.toFixed(4)}\`${turn.request.contextWindow ? ` · **Context Window:** \`${turn.request.contextWindow.raw}\`` : ''}`);
-      L.push('>');
-      L.push(`> ${block(turn.request.text).split('\n').join('\n> ')}`);
-      L.push('</details>');
-      L.push('');
-    }
-
-    if (turn.reasoning) {
-      L.push('<details>');
-      L.push('<summary>🧠 <b>AI Reasoning</b></summary>');
-      L.push('');
-      L.push(`> ${block(turn.reasoning).split('\n').join('\n> ')}`);
-      L.push('</details>');
-      L.push('');
-    }
-
-    for (const s of (turn.texts || [])) {
-      L.push(`> 💬 **Agent:** ${block(s).split('\n').join('\n> ')}`);
-      L.push(`> — \`${formatFullTime(s.ts)}\` (ts: \`${s.ts}\`)`);
-      L.push('');
-    }
-
-    for (const a of turn.actions) {
-      const what = a.kind === 'tool' ? `${a.what.tool} ${a.what.path || ''}`.trim() : a.what.command;
-      const actionTime = formatFullTime(a.ts);
-      const icon = a.kind === 'tool' ? '🛠️' : '💻';
-      
-      L.push(`* ${icon} **${a.kind}:** \`${what}\``);
-      L.push(`  * ⏱️ **Time:** \`${actionTime}\` (ts: \`${a.ts}\`)`);
-      if (a.why) {
-        L.push(`  * 🎯 **Why:** ${a.why}`);
-      }
-      if (a.output) {
-        const outTime = formatFullTime(a.output.ts);
-        const delta = ((a.output.ts - a.ts) / 1000).toFixed(2);
-        const errAlert = a.output.isError ? ' · ⚠️ **Error Detected!**' : '';
-        L.push(`  * 📥 **Output:** \`${outTime}\` (ts: \`${a.output.ts}\`) | delta: \`+${delta}s\`${errAlert}`);
-        
-        const outputText = block(a.output);
-        if (outputText && outputText !== '_none_') {
-          const lines = outputText.split('\n');
-          const openAttr = a.output.isError ? ' open' : '';
-          L.push(`    <details${openAttr}>`);
-          L.push(`    <summary>📄 <i>Click to view output details (${lines.length} lines)</i></summary>`);
-          L.push('');
-          L.push(`    > ` + lines.join('\n    > '));
-          L.push('    </details>');
-        }
-      }
-    }
-
-    if (turn.taskProgress && turn.taskProgress.items.length) {
-      L.push('  * 📋 **Progress:**');
-      for (const it of turn.taskProgress.items) {
-        L.push(`    - [${it.done ? 'x' : ' '}] ${it.text}`);
-      }
-    }
-    if (turn.checkpoint) {
-      L.push(`  * 💾 **checkpoint:** \`${turn.checkpoint.hash}\``);
-    }
-    L.push('');
+    pushTurn(L, turn);
   }
 
   L.push('---');
