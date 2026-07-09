@@ -49,9 +49,58 @@ const taskSelect = document.getElementById('task-select');
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
+  setupThemeSwitcher();
   fetchData();
   setupEventListeners();
+  if (window.lucide) lucide.createIcons();
 });
+
+// ===== Theme switching =====
+const THEMES = ['midnight', 'dev', 'light', 'claude'];
+// Which Mermaid built-in theme pairs with each app theme.
+const MERMAID_THEME = { midnight: 'dark', dev: 'dark', light: 'default', claude: 'neutral' };
+
+function getActiveTheme() {
+  return document.documentElement.getAttribute('data-theme') || 'midnight';
+}
+
+// Resolve a CSS custom property to a concrete color string (for canvas/mermaid,
+// which can't read CSS variables themselves).
+function cssVar(name, fallback) {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+
+function applyTheme(name) {
+  if (!THEMES.includes(name)) name = 'midnight';
+  document.documentElement.setAttribute('data-theme', name);
+  try { localStorage.setItem('analyzerTheme', name); } catch (e) {}
+
+  // Reflect active state on the switcher buttons.
+  document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.themeVal === name);
+  });
+
+  // Canvas charts and Mermaid diagrams bake colors in at render time, so
+  // re-render them against the new token values.
+  mermaid.initialize({ startOnLoad: false, theme: MERMAID_THEME[name], securityLevel: 'loose' });
+  if (flowData) {
+    drawCharts();
+    const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab;
+    if (activeTab === 'mermaid') initMermaid();
+    else if (activeTab === 'analysis') initFtaMermaid();
+  }
+}
+
+function setupThemeSwitcher() {
+  let saved = 'midnight';
+  try { saved = localStorage.getItem('analyzerTheme') || 'midnight'; } catch (e) {}
+  applyTheme(saved);
+
+  document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.addEventListener('click', () => applyTheme(btn.dataset.themeVal));
+  });
+}
 
 // Setup event listeners
 function setupEventListeners() {
@@ -569,6 +618,15 @@ function resetPlayback() {
 function drawCharts() {
   if (!flowData) return;
 
+  // Pull palette from the active theme's CSS tokens so charts match the UI.
+  const cText = cssVar('--text-muted', '#94a3b8');
+  const cGrid = cssVar('--fill-04', 'rgba(255, 255, 255, 0.04)');
+  const cIndigo = cssVar('--indigo', '#6366f1');
+  const cCyan = cssVar('--cyan', '#06b6d4');
+  const cAmber = cssVar('--amber', '#f59e0b');
+  const cEmerald = cssVar('--emerald', '#10b981');
+  const cRose = cssVar('--rose', '#f43f5e');
+
   const turns = flowData.turns;
   const labels = turns.map(t => `T${t.index}`);
 
@@ -595,7 +653,7 @@ function drawCharts() {
         {
           label: 'Tokens In (Cumulative)',
           data: dataTokensIn,
-          borderColor: '#6366f1',
+          borderColor: cIndigo,
           backgroundColor: 'rgba(99, 102, 241, 0.05)',
           fill: true,
           tension: 0.3
@@ -603,7 +661,7 @@ function drawCharts() {
         {
           label: 'Tokens Out (Cumulative)',
           data: dataTokensOut,
-          borderColor: '#06b6d4',
+          borderColor: cCyan,
           backgroundColor: 'rgba(6, 182, 212, 0.05)',
           fill: true,
           tension: 0.3
@@ -613,11 +671,11 @@ function drawCharts() {
     options: {
       responsive: true,
       plugins: {
-        legend: { labels: { color: '#94a3b8' } }
+        legend: { labels: { color: cText } }
       },
       scales: {
-        x: { grid: { color: 'rgba(255, 255, 255, 0.04)' }, ticks: { color: '#94a3b8' } },
-        y: { grid: { color: 'rgba(255, 255, 255, 0.04)' }, ticks: { color: '#94a3b8' } }
+        x: { grid: { color: cGrid }, ticks: { color: cText } },
+        y: { grid: { color: cGrid }, ticks: { color: cText } }
       }
     }
   });
@@ -639,7 +697,7 @@ function drawCharts() {
       datasets: [{
         label: 'Cost (USD)',
         data: dataCost,
-        borderColor: '#f59e0b',
+        borderColor: cAmber,
         backgroundColor: 'rgba(245, 158, 11, 0.05)',
         fill: true,
         tension: 0.3
@@ -648,11 +706,11 @@ function drawCharts() {
     options: {
       responsive: true,
       plugins: {
-        legend: { labels: { color: '#94a3b8' } }
+        legend: { labels: { color: cText } }
       },
       scales: {
-        x: { grid: { color: 'rgba(255, 255, 255, 0.04)' }, ticks: { color: '#94a3b8' } },
-        y: { grid: { color: 'rgba(255, 255, 255, 0.04)' }, ticks: { color: '#94a3b8' } }
+        x: { grid: { color: cGrid }, ticks: { color: cText } },
+        y: { grid: { color: cGrid }, ticks: { color: cText } }
       }
     }
   });
@@ -666,14 +724,14 @@ function drawCharts() {
       labels: ['Cache Reads', 'Cache Writes'],
       datasets: [{
         data: [flowData.totals.cacheReads, flowData.totals.cacheWrites],
-        backgroundColor: ['#10b981', '#f43f5e'],
+        backgroundColor: [cEmerald, cRose],
         borderWidth: 0
       }]
     },
     options: {
       responsive: true,
       plugins: {
-        legend: { labels: { color: '#94a3b8' } }
+        legend: { labels: { color: cText } }
       }
     }
   });

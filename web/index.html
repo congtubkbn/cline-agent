@@ -15,6 +15,15 @@
   <!-- Mermaid.js -->
   <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
   <link rel="stylesheet" href="style.css">
+  <!-- Apply saved theme before first paint to avoid a flash of the default theme -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('analyzerTheme');
+        if (t) document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
   <!-- Ambient background glow effects -->
@@ -43,6 +52,13 @@
         <div class="task-badge-area">
           <span class="badge badge-indigo" id="task-id-badge">Loading...</span>
           <span class="badge badge-emerald" id="model-badge">Loading...</span>
+        </div>
+
+        <div class="theme-switcher" id="theme-switcher" role="group" aria-label="Color theme">
+          <button class="theme-btn" data-theme-val="midnight" title="Midnight (dark)" aria-label="Midnight dark theme"><i data-lucide="moon"></i></button>
+          <button class="theme-btn" data-theme-val="dev" title="Dev high-contrast" aria-label="Dev high-contrast theme"><i data-lucide="square-terminal"></i></button>
+          <button class="theme-btn" data-theme-val="light" title="Light" aria-label="Light theme"><i data-lucide="sun"></i></button>
+          <button class="theme-btn" data-theme-val="claude" title="Claude cream" aria-label="Claude cream theme"><i data-lucide="sparkles"></i></button>
         </div>
       </div>
       
