@@ -8,8 +8,9 @@
  *
  * Options:
  *   --app-dir <dir>   Install the app somewhere other than ~/.cline-agent-analyzer
- *   --project <dir>   Install the skill into <dir>/.claude/skills/cline-agent
- *                     (default installs to the global ~/.claude/skills/cline-agent)
+ *   --project <dir>   Install the skill into <dir>/.claude/skills/cline-agent and
+ *                     <dir>/.agents/skills/cline-agent (default installs to the
+ *                     global ~/.claude/skills/cline-agent and ~/.agents/skills/cline-agent)
  *   --no-skill        Install the app only, skip the skill
  *   --force           Overwrite a non-empty app dir that this installer didn't create
  *   --help            Show this help
@@ -57,13 +58,17 @@ if (opts.help) {
 
 const home = os.homedir();
 const appDir = path.resolve(opts.appDir || path.join(home, '.cline-agent-analyzer'));
-const skillDir = opts.project
-  ? path.join(path.resolve(opts.project), '.claude', 'skills', 'cline-agent')
-  : path.join(home, '.claude', 'skills', 'cline-agent');
+const skillRoot = opts.project ? path.resolve(opts.project) : home;
+// Claude Code reads skills from .claude/skills; Cline reads from .agents/skills.
+// Install to both so the skill works regardless of which agent the user runs.
+const skillDirs = [
+  path.join(skillRoot, '.claude', 'skills', 'cline-agent'),
+  path.join(skillRoot, '.agents', 'skills', 'cline-agent'),
+];
 
 console.log(`Cline Agent Analyzer installer — v${BUILD.version} (built ${BUILD.builtAt})`);
 console.log(`App dir:   ${appDir}`);
-console.log(`Skill dir: ${opts.skill ? skillDir : '(skipped, --no-skill)'}`);
+console.log(`Skill dirs: ${opts.skill ? skillDirs.join(', ') : '(skipped, --no-skill)'}`);
 
 // Refuse to clobber a directory we didn't create, unless --force.
 if (fs.existsSync(appDir)) {
@@ -93,8 +98,11 @@ fs.writeFileSync(
 console.log(`\nInstalled app (${appFiles.length + 1} files).`);
 
 if (opts.skill) {
-  const skillFiles = writeTree(skillDir, MANIFEST.skill);
-  console.log(`Installed skill (${skillFiles.length} files).`);
+  let skillFileCount = 0;
+  for (const skillDir of skillDirs) {
+    skillFileCount = writeTree(skillDir, MANIFEST.skill).length;
+  }
+  console.log(`Installed skill (${skillFileCount} files) to ${skillDirs.length} location(s).`);
 }
 
 console.log(`

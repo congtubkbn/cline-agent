@@ -39,15 +39,16 @@ Installer sẽ:
 1. Cài app vào `~/.cline-agent-analyzer` (Windows:
    `%USERPROFILE%\.cline-agent-analyzer`) — gồm các bundle đã minify, không có
    source tree.
-2. Cài skill vào `~/.claude/skills/cline-agent/` (skill cá nhân, dùng được ở
-   mọi project).
+2. Cài skill vào cả `~/.claude/skills/cline-agent/` (Claude Code) và
+   `~/.agents/skills/cline-agent/` (Cline) — skill cá nhân, dùng được ở mọi
+   project, không cần biết trước người dùng chạy agent nào.
 
 Tùy chọn:
 
 | Cờ | Ý nghĩa |
 |---|---|
 | `--app-dir <dir>` | Cài app vào chỗ khác thay vì `~/.cline-agent-analyzer`. |
-| `--project <dir>` | Cài skill vào `<dir>/.claude/skills/cline-agent` (theo project) thay vì global. |
+| `--project <dir>` | Cài skill vào `<dir>/.claude/skills/cline-agent` và `<dir>/.agents/skills/cline-agent` (theo project) thay vì global. |
 | `--no-skill` | Chỉ cài app, bỏ qua skill. |
 | `--force` | Cho phép ghi đè thư mục app không do installer tạo ra. |
 
