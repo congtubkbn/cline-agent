@@ -9,6 +9,16 @@
 // renderHtml(flow, { sidecars }) where `sidecars` maps a block's `.sidecar`
 // path (e.g. "sidecar/3_req_request.txt") to its raw full text.
 
+import { MERMAID_MIN_JS_B64 } from './mermaid-lib.js';
+
+// Decoded once at module load. `</script` is neutralized so the minified
+// bundle can never prematurely close the <script> tag it gets inlined into —
+// safe because any real occurrence lives inside a string/regex/comment in
+// mermaid's own source, where `\/` is a no-op escape.
+const MERMAID_LIB_SCRIPT = Buffer.from(MERMAID_MIN_JS_B64, 'base64')
+  .toString('utf-8')
+  .replace(/<\/script/gi, '<\\/script');
+
 function esc(s) {
   return String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -159,6 +169,8 @@ pre.prev{background:var(--code);border:1px solid var(--border);border-radius:6px
 .hide{display:none!important}
 details.mmd{margin-bottom:18px}
 details.mmd pre{background:var(--code);border:1px solid var(--border);border-radius:6px;padding:10px;overflow:auto}
+details.mmd pre.mermaid{text-align:center}
+details.mmd pre.mermaid svg{max-width:100%}
 .theme-sw{display:flex;gap:4px;margin-bottom:12px}
 .theme-sw button{flex:1;background:var(--btn);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:5px 0;cursor:pointer;font-size:14px;line-height:1}
 .theme-sw button:hover{background:var(--btn-hover);color:var(--fg)}
@@ -205,6 +217,26 @@ const obs = new IntersectionObserver(es=>{
 },{rootMargin:'-10% 0px -80% 0px'});
 document.querySelectorAll('section.turn').forEach(s=>obs.observe(s));
 
+// Mermaid flow diagram — rendered lazily on first expand (the <details> is
+// closed by default), and re-rendered whenever the theme changes so its
+// colors stay in sync.
+const MMD_THEME = {midnight:'dark', dev:'dark', light:'default', claude:'neutral'};
+const mmdBox = document.getElementById('flow-mermaid');
+const mmdDetails = document.getElementById('mmd-details');
+const mmdSrc = mmdBox ? mmdBox.textContent : null;
+let mmdOpened = false;
+function renderMmd(){
+  if (!mmdSrc || !mmdBox || typeof mermaid === 'undefined') return;
+  mmdBox.removeAttribute('data-processed');
+  mmdBox.textContent = mmdSrc;
+  try{ mermaid.init(undefined, mmdBox); }catch(e){ console.error('mermaid render error', e); }
+}
+if (mmdDetails) {
+  mmdDetails.addEventListener('toggle', () => {
+    if (mmdDetails.open && !mmdOpened) { mmdOpened = true; renderMmd(); }
+  });
+}
+
 // Theme switcher — shares the 'analyzerTheme' localStorage key with the dashboard.
 const THEMES = ['midnight','dev','light','claude'];
 function applyTheme(n){
@@ -212,6 +244,10 @@ function applyTheme(n){
   document.documentElement.setAttribute('data-theme', n);
   try{ localStorage.setItem('analyzerTheme', n); }catch(e){}
   document.querySelectorAll('.theme-sw button').forEach(b=>b.classList.toggle('active', b.dataset.t===n));
+  if (typeof mermaid !== 'undefined') {
+    mermaid.initialize({ startOnLoad: false, theme: MMD_THEME[n] || 'dark', securityLevel: 'loose' });
+    if (mmdOpened) renderMmd();
+  }
 }
 (function(){ let s='midnight'; try{ s=localStorage.getItem('analyzerTheme')||'midnight'; }catch(e){} applyTheme(s); })();
 document.querySelectorAll('.theme-sw button').forEach(b=>b.addEventListener('click',()=>applyTheme(b.dataset.t)));
@@ -266,7 +302,7 @@ export function renderHtml(flow, { sidecars = {} } = {}) {
 </aside>
 <main>
   <div class="card"><table>${meta}</table></div>
-  <details class="mmd"><summary>🗺️ Flow diagram (Mermaid source)</summary><pre>${esc(flow.mermaid || '')}</pre></details>
+  <details class="mmd" id="mmd-details"><summary>🗺️ Flow diagram</summary><pre class="mermaid" id="flow-mermaid">${esc(flow.mermaid || '')}</pre></details>
   ${turnsHtml}
   <div class="card" id="completion">${completion}</div>
 </main>
@@ -276,6 +312,7 @@ export function renderHtml(flow, { sidecars = {} } = {}) {
   <pre id="modal-body"></pre>
 </div></div>
 <script>window.__SIDECARS__=${scJson};</script>
+<script>${MERMAID_LIB_SCRIPT}</script>
 <script>${SCRIPT}</script>
 </body></html>`;
 }
