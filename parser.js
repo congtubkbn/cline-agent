@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { load } from './src/loader.js';
 import { analyze } from './src/analyze.js';
 import { buildFaultTree, ftaToMermaid } from './src/fta.js';
-import { buildAnalysisRecord, renderAnalysisMarkdown } from './src/report.js';
+import { buildAnalysisRecord } from './src/report.js';
 import { renderMarkdown, renderErrorMarkdown } from './src/render-md.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -104,11 +104,6 @@ fs.writeFileSync(analysisPath, analysisJson, 'utf-8');
 fs.writeFileSync(webAnalysisPath, analysisJson, 'utf-8');
 console.log('Saved analysis record to:', analysisPath, 'and', webAnalysisPath);
 
-const analysisReport = renderAnalysisMarkdown(analysis, { ftaMermaid });
-const analysisReportPath = path.join(taskDir, `${taskId}_analysis_report.md`);
-fs.writeFileSync(analysisReportPath, analysisReport, 'utf-8');
-console.log('Saved analysis report to:', analysisReportPath);
-
 // Write legacy files for backward compatibility
 const flowDataPathLegacy = path.join(__dirname, 'flow_data.json');
 const webFlowDataPathLegacy = path.join(webOutDir, 'flow_data.json');
@@ -122,7 +117,6 @@ const errorReportPathLegacy = path.join(__dirname, 'error_report.md');
 fs.writeFileSync(errorReportPathLegacy, errorReport, 'utf-8');
 
 fs.writeFileSync(path.join(__dirname, 'analysis.json'), analysisJson, 'utf-8');
-fs.writeFileSync(path.join(__dirname, 'analysis_report.md'), analysisReport, 'utf-8');
 
 // Update web/tasks.json catalog
 const tasksJsonPath = path.join(__dirname, 'web', 'tasks.json');
