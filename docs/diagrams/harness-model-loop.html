@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cline Agent Loop · How It Works & How the Log Is Saved</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --bg:        #eceef2;
+    --panel:     #ffffff;
+    --ink:       #1b2330;
+    --ink-soft:  #55617a;
+    --ink-faint: #8791a6;
+    --line:      #d3d8e2;
+    --line-soft: #e4e8ef;
+    --say:       #2f6bd6;   /* say  = model/agent emits */
+    --say-bg:    #e6eefb;
+    --ask:       #c07908;   /* ask  = needs user/UI     */
+    --ask-bg:    #faf0dc;
+    --model:     #7a3ea8;   /* model-authored content   */
+    --model-bg:  #f0e7f8;
+    --harness:   #0f8a7e;   /* harness / tooling        */
+    --harness-bg:#dcf1ee;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#10141c; --panel:#161c27; --ink:#e7ecf4; --ink-soft:#a2adc2;
+      --ink-faint:#6b7691; --line:#2a3342; --line-soft:#212936;
+      --say:#6ea2f5; --say-bg:#182742; --ask:#e0a94b; --ask-bg:#392c14;
+      --model:#c088e8; --model-bg:#2c1f3c; --harness:#3cc9b9; --harness-bg:#123230;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#10141c; --panel:#161c27; --ink:#e7ecf4; --ink-soft:#a2adc2;
+    --ink-faint:#6b7691; --line:#2a3342; --line-soft:#212936;
+    --say:#6ea2f5; --say-bg:#182742; --ask:#e0a94b; --ask-bg:#392c14;
+    --model:#c088e8; --model-bg:#2c1f3c; --harness:#3cc9b9; --harness-bg:#123230;
+  }
+  :root[data-theme="light"] {
+    --bg:#eceef2; --panel:#ffffff; --ink:#1b2330; --ink-soft:#55617a;
+    --ink-faint:#8791a6; --line:#d3d8e2; --line-soft:#e4e8ef;
+    --say:#2f6bd6; --say-bg:#e6eefb; --ask:#c07908; --ask-bg:#faf0dc;
+    --model:#7a3ea8; --model-bg:#f0e7f8; --harness:#0f8a7e; --harness-bg:#dcf1ee;
+  }
+
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--sans); line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 48px 28px 96px; }
+
+  header { margin-bottom: 40px; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 12px; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--harness); font-weight: 600;
+    margin: 0 0 12px;
+  }
+  h1 {
+    font-size: clamp(28px, 4.5vw, 44px); line-height: 1.08; margin: 0 0 14px;
+    letter-spacing: -.02em; text-wrap: balance; font-weight: 700;
+  }
+  .lede { font-size: 17px; color: var(--ink-soft); max-width: 62ch; margin: 0; }
+  .lede code { font-family: var(--mono); font-size: .88em; color: var(--ink); }
+
+  h2 {
+    font-size: 13px; font-family: var(--mono); letter-spacing: .12em;
+    text-transform: uppercase; color: var(--ink-faint); font-weight: 600;
+    margin: 56px 0 20px; padding-bottom: 10px; border-bottom: 1px solid var(--line);
+  }
+
+  /* ---- legend ---- */
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin: 28px 0 0; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 12.5px; font-weight: 600;
+    padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line);
+    background: var(--panel);
+  }
+  .dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .d-say{background:var(--say)} .d-ask{background:var(--ask)}
+  .d-model{background:var(--model)} .d-harness{background:var(--harness)}
+
+  /* ---- loop diagram ---- */
+  .loop { display: flex; flex-direction: column; gap: 0; margin-top: 8px; }
+  .step { display: grid; grid-template-columns: 44px 1fr; gap: 18px; }
+  .rail { display: flex; flex-direction: column; align-items: center; }
+  .num {
+    width: 34px; height: 34px; border-radius: 50%; flex: none;
+    display: grid; place-items: center; font-family: var(--mono);
+    font-size: 14px; font-weight: 700; color: var(--panel);
+    background: var(--ink); margin-top: 2px;
+  }
+  .connector { width: 2px; flex: 1 1 auto; background: var(--line); min-height: 22px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: 16px 18px; margin-bottom: 16px;
+    border-left: 4px solid var(--edge, var(--line));
+  }
+  .card.say    { --edge: var(--say); }
+  .card.ask    { --edge: var(--ask); }
+  .card.model  { --edge: var(--model); }
+  .card.harness{ --edge: var(--harness); }
+  .card h3 {
+    margin: 0 0 6px; font-size: 15.5px; font-weight: 700;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .tag {
+    font-family: var(--mono); font-size: 11px; font-weight: 600;
+    padding: 2px 8px; border-radius: 6px; letter-spacing: .02em;
+  }
+  .tag.say{ background: var(--say-bg); color: var(--say); }
+  .tag.ask{ background: var(--ask-bg); color: var(--ask); }
+  .tag.model{ background: var(--model-bg); color: var(--model); }
+  .tag.harness{ background: var(--harness-bg); color: var(--harness); }
+  .card p { margin: 4px 0 0; font-size: 14px; color: var(--ink-soft); }
+  .card p code, .inline {
+    font-family: var(--mono); font-size: .86em;
+    background: var(--line-soft); padding: 1px 5px; border-radius: 4px; color: var(--ink);
+  }
+  .loopback {
+    display: flex; align-items: center; gap: 10px; margin: 6px 0 0 62px;
+    font-family: var(--mono); font-size: 12.5px; color: var(--harness); font-weight: 600;
+  }
+  .loopback .arc { font-size: 18px; }
+
+  /* ---- two-column split ---- */
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 720px){ .split { grid-template-columns: 1fr; } }
+  .who {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: 20px 22px;
+  }
+  .who h3 {
+    margin: 0 0 4px; font-size: 16px; display: flex; align-items: center; gap: 9px;
+  }
+  .who .sub { font-family: var(--mono); font-size: 11.5px; color: var(--ink-faint); margin: 0 0 14px; }
+  .who ul { margin: 0; padding: 0; list-style: none; }
+  .who li {
+    font-size: 14px; padding: 7px 0 7px 20px; position: relative; color: var(--ink-soft);
+    border-top: 1px solid var(--line-soft);
+  }
+  .who li:first-child{ border-top: none; }
+  .who li::before {
+    content: "▸"; position: absolute; left: 0; top: 7px; color: var(--edge);
+  }
+  .who.model { --edge: var(--model); }
+  .who.harness { --edge: var(--harness); }
+  .who li b { color: var(--ink); font-weight: 600; }
+  .who code { font-family: var(--mono); font-size: .84em; color: var(--ink); }
+
+  /* ---- log storage panel ---- */
+  .logpanel {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    overflow: hidden;
+  }
+  .logbar {
+    display: flex; align-items: center; gap: 8px; padding: 12px 18px;
+    background: var(--line-soft); border-bottom: 1px solid var(--line);
+    font-family: var(--mono); font-size: 12.5px; color: var(--ink-soft);
+  }
+  .logbar .path { color: var(--ink); font-weight: 600; }
+  .logbar .size { margin-left: auto; color: var(--ink-faint); }
+  .codewrap { overflow-x: auto; }
+  pre {
+    margin: 0; padding: 18px 20px; font-family: var(--mono);
+    font-size: 12.5px; line-height: 1.7; color: var(--ink); min-width: 480px;
+  }
+  .k { color: var(--say); }      /* json key */
+  .s { color: var(--harness); }  /* string   */
+  .n { color: var(--model); }    /* number   */
+  .c { color: var(--ink-faint); font-style: italic; } /* comment */
+  .hl { background: var(--ask-bg); border-radius: 3px; padding: 0 2px; }
+
+  .note {
+    margin-top: 16px; font-size: 13.5px; color: var(--ink-soft);
+    display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; align-items: start;
+  }
+  .note .field { font-family: var(--mono); font-size: 12px; color: var(--say); font-weight: 600; white-space: nowrap; }
+
+  footer {
+    margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--line);
+    font-family: var(--mono); font-size: 12px; color: var(--ink-faint);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Cline · agent execution loop</p>
+    <h1>How the agent and model work — and how the run is logged</h1>
+    <p class="lede">Traced from <code>cline-log/1783615946293/ui_messages.json</code> — a Qualcomm-case run on <code>deepseek/deepseek-v4-flash</code>. The model only reads and writes text; the <b>harness</b> does everything else and records every step as one event in a flat JSON array.</p>
+    <div class="legend">
+      <span class="chip"><span class="dot d-say"></span>say — emit</span>
+      <span class="chip"><span class="dot d-ask"></span>ask — needs user/UI</span>
+      <span class="chip"><span class="dot d-model"></span>model-authored content</span>
+      <span class="chip"><span class="dot d-harness"></span>harness action (actor)</span>
+    </div>
+  </header>
+
+  <h2>The turn loop — one cycle per model call</h2>
+  <div class="loop">
+
+    <div class="step">
+      <div class="rail"><div class="num">1</div><div class="connector"></div></div>
+      <div class="card say">
+        <h3><span class="tag say">say : task</span> User seeds the run</h3>
+        <p>Prompt becomes event 0 at <span class="inline">conversationHistoryIndex: -1</span>, carrying <span class="inline">modelInfo</span> — model id + <span class="inline">mode: "act"</span>.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="rail"><div class="num">2</div><div class="connector"></div></div>
+      <div class="card harness">
+        <h3><span class="tag harness">say : checkpoint_created</span> Snapshot before work</h3>
+        <p>Harness saves a git-style <span class="inline">lastCheckpointHash</span> — a rollback point tied to the current turn index.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="rail"><div class="num">3</div><div class="connector"></div></div>
+      <div class="card harness">
+        <h3><span class="tag harness">say : api_req_started</span> Harness calls the model</h3>
+        <p><b>Actor is the harness, not the model</b> — this event records an API call the harness makes. It packs <span class="inline">text</span>: task + injected nudges + <span class="inline">&lt;environment_details&gt;</span> (open files, CWD, file tree, <b>context-window %</b>, mode), fires the request, then waits.</p>
+        <p><b>Written twice, same object.</b> Created at send time with only <span class="inline">tokensIn</span> known. When the model finishes replying, the harness patches this <i>same</i> event in place and appends <span class="inline">tokensOut / cacheReads / cost</span> — the array entry you read is the post-patch, final state, not a snapshot from when it was sent.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="rail"><div class="num">4</div><div class="connector"></div></div>
+      <div class="card say">
+        <h3><span class="tag say">say : reasoning · text · tool</span> Model responds</h3>
+        <p>One reply, split into events: <b>reasoning</b> (chain-of-thought) → <b>text</b> (user-facing) → <b>tool</b>, a structured call e.g. <span class="inline">{"tool":"useSkill","path":"qualcomm-case-agent"}</span>.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="rail"><div class="num">5</div><div class="connector"></div></div>
+      <div class="card ask">
+        <h3><span class="tag ask">ask : command_output</span> Harness runs it, gates side-effects</h3>
+        <p>Tool executes (<span class="inline">node -e …</span>). Long stdout returns across several <b>ask</b> events. Result is injected into the <b>next</b> <span class="inline">api_req_started</span> — that's how the model "sees" the world.</p>
+      </div>
+    </div>
+
+  </div>
+  <div class="loopback"><span class="arc">↺</span> tool result becomes the next request → new turn, <span class="inline" style="margin-left:4px">conversationHistoryIndex++</span> → back to step 3</div>
+
+  <h2>Who does what</h2>
+  <p style="font-size:14px;color:var(--ink-soft);margin:-8px 0 20px;max-width:68ch;">Every event in the file is <b>written by the harness</b> — the model never has file access. The split below is about <b>who authored the content</b> of an event, not who wrote it to disk.</p>
+  <div class="split">
+    <div class="who model">
+      <h3><span class="dot d-model"></span>The model</h3>
+      <p class="sub">content author, not the writer</p>
+      <ul>
+        <li><b>Reasons</b> over the packed context</li>
+        <li><b>Picks a tool</b> and emits its arguments</li>
+        <li><b>Writes</b> user-facing text</li>
+        <li>Never touches disk, browser, or shell — never appends to the log itself</li>
+      </ul>
+    </div>
+    <div class="who harness">
+      <h3><span class="dot d-harness"></span>Cline (the harness)</h3>
+      <p class="sub">the actor — does everything, records everything</p>
+      <ul>
+        <li><b>Serializes</b> the request, injects <code>&lt;environment_details&gt;</code> + nudges</li>
+        <li><b>Calls the model API</b> — this is <code>api_req_started</code>; the model doesn't place this call itself, it's called <i>at</i></li>
+        <li><b>Executes</b> the tool call, captures stdout/stderr</li>
+        <li><b>Checkpoints</b> each turn for rollback</li>
+        <li><b>Gates</b> side-effects behind <code>ask</code> approvals</li>
+        <li><b>Writes</b> every event — model-authored or its own — to <code>ui_messages.json</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>How the log is stored</h2>
+  <div class="logpanel">
+    <div class="logbar">
+      <span class="path">ui_messages.json</span>
+      <span>— flat array, one object per event, ordered by <span style="color:var(--ink)">ts</span></span>
+      <span class="size">≈ 885 KB</span>
+    </div>
+    <div class="codewrap">
+<pre><span class="c">// mostly append-only — ONE exception below: api_req_started is patched in place</span>
+[
+  {
+    <span class="k">"ts"</span>: <span class="n">1783615946299</span>,          <span class="c">// epoch ms — the clock</span>
+    <span class="k">"type"</span>: <span class="s">"say"</span>,               <span class="c">// say = emit  |  ask = needs user</span>
+    <span class="k">"say"</span>: <span class="s">"task"</span>,              <span class="c">// subtype: task / reasoning / text</span>
+    <span class="k">"text"</span>: <span class="s">"qualcomm case 08563930, 08571967, …"</span>,
+    <span class="k">"modelInfo"</span>: { <span class="k">"modelId"</span>: <span class="s">"deepseek/deepseek-v4-flash"</span>,
+                   <span class="k">"mode"</span>: <span class="s">"act"</span> },
+    <span class="k">"conversationHistoryIndex"</span>: <span class="hl"><span class="n">-1</span></span>   <span class="c">// which model turn owns this event</span>
+  },
+  {
+    <span class="k">"ts"</span>: <span class="n">1783615949710</span>,
+    <span class="k">"type"</span>: <span class="s">"say"</span>, <span class="k">"say"</span>: <span class="s">"api_req_started"</span>,
+    <span class="c">// ↑ harness places this call. shown here AFTER the patch —</span>
+    <span class="c">//   at send-time only "request" + tokensIn existed; tokensOut/</span>
+    <span class="c">//   cacheReads/cost get written into this SAME object once the</span>
+    <span class="c">//   model finishes replying. the file always shows the final state.</span>
+    <span class="k">"text"</span>: <span class="s">"{ request … tokensIn: 6336, tokensOut: 120, cacheReads: 10112, cost: 0 }"</span>,
+    <span class="k">"conversationHistoryIndex"</span>: <span class="n">-1</span>
+  },
+  {
+    <span class="k">"ts"</span>: <span class="n">1783615962666</span>,
+    <span class="k">"type"</span>: <span class="s">"say"</span>, <span class="k">"say"</span>: <span class="s">"reasoning"</span>,     <span class="c">// model-authored, harness-written</span>
+    <span class="k">"conversationHistoryIndex"</span>: <span class="hl"><span class="n">2</span></span>            <span class="c">// turn advanced</span>
+  },
+  {
+    <span class="k">"ts"</span>: <span class="n">1783615965905</span>,
+    <span class="k">"type"</span>: <span class="hl"><span class="s">"ask"</span></span>, <span class="k">"ask"</span>: <span class="s">"command_output"</span>,   <span class="c">// harness ran it, reports result</span>
+    <span class="k">"text"</span>: <span class="s">"{ 08563930: { commentCount: 19, hash … } }"</span>,
+    <span class="k">"conversationHistoryIndex"</span>: <span class="n">3</span>
+  }
+  <span class="c">// … ~hundreds more, appended until the run ends</span>
+]</pre>
+    </div>
+  </div>
+
+  <div class="note">
+    <span class="field">ts</span><span>Epoch milliseconds. Sole ordering key — events are appended in real time.</span>
+    <span class="field">type</span><span><span class="inline">say</span> = one-directional emit · <span class="inline">ask</span> = harness pauses for user/UI (approval, command output).</span>
+    <span class="field">say / ask</span><span>The subtype: <span class="inline">task · reasoning · text · tool · command · api_req_started · checkpoint_created · command_output</span>.</span>
+    <span class="field">modelInfo</span><span>Stamped on every event — provider, model id, mode. Same run can switch models mid-stream.</span>
+    <span class="field">…HistoryIndex</span><span>Maps many UI events to one model turn. Multiple <span class="inline">say</span>/<span class="inline">ask</span> events share one index.</span>
+    <span class="field">actor rule</span><span>No field states it directly — decode from subtype. <span class="inline">task</span> → user · <span class="inline">reasoning/text/tool/command</span> → model-authored (harness-written) · <span class="inline">api_req_started/checkpoint_created</span> → harness's own action · any <span class="inline">ask</span> → harness pausing for the user.</span>
+  </div>
+
+  <footer>source · ui_messages.json (deepseek/deepseek-v4-flash, act mode) — 6 Qualcomm cases, model loaded skill → read _index.json cache → found 08563930 already cached (19 comments)</footer>
+</div>
+</body>
+</html>
