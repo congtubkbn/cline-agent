@@ -24,3 +24,4 @@ web/tasks.json
 web/tasks/
 analysis.json
 analysis_report.md
+.auto-issue/
