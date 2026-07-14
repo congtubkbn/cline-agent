@@ -7,12 +7,9 @@
  *   node cline-agent-installer.mjs [options]
  *
  * Options:
- *   --app-dir <dir>   Install the app somewhere other than ~/.cline-agent-analyzer
- *   --project <dir>   Install the skill into <dir>/.claude/skills/cline-agent and
- *                     <dir>/.agents/skills/cline-agent (default installs to the
- *                     global ~/.claude/skills/cline-agent and ~/.agents/skills/cline-agent)
- *   --no-skill        Install the app only, skip the skill
- *   --force           Overwrite a non-empty app dir that this installer didn't create
+ *   --project <dir>   Install the skill into <dir>/.agents/skills/cline-agent
+ *                     (default installs to the global ~/.agents/skills/cline-agent)
+ *   --force           Overwrite a non-empty skill dir that this installer didn't create
  *   --help            Show this help
  */
 import fs from 'node:fs';
@@ -23,12 +20,10 @@ const BUILD = __BUILD_INFO__;
 const MANIFEST = __MANIFEST_JSON__;
 
 function parseArgs(argv) {
-  const opts = { appDir: null, project: null, skill: true, force: false, help: false };
+  const opts = { project: null, force: false, help: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--app-dir') opts.appDir = argv[++i];
-    else if (a === '--project') opts.project = argv[++i];
-    else if (a === '--no-skill') opts.skill = false;
+    if (a === '--project') opts.project = argv[++i];
     else if (a === '--force') opts.force = true;
     else if (a === '--help' || a === '-h') opts.help = true;
     else {
@@ -57,62 +52,46 @@ if (opts.help) {
 }
 
 const home = os.homedir();
-const appDir = path.resolve(opts.appDir || path.join(home, '.cline-agent-analyzer'));
 const skillRoot = opts.project ? path.resolve(opts.project) : home;
-// Claude Code reads skills from .claude/skills; Cline reads from .agents/skills.
-// Install to both so the skill works regardless of which agent the user runs.
-const skillDirs = [
-  path.join(skillRoot, '.claude', 'skills', 'cline-agent'),
-  path.join(skillRoot, '.agents', 'skills', 'cline-agent'),
-];
+const skillDir = path.join(skillRoot, '.agents', 'skills', 'cline-agent');
 
 console.log(`Cline Agent Analyzer installer — v${BUILD.version} (built ${BUILD.builtAt})`);
-console.log(`App dir:   ${appDir}`);
-console.log(`Skill dirs: ${opts.skill ? skillDirs.join(', ') : '(skipped, --no-skill)'}`);
+console.log(`Install dir: ${skillDir}`);
 
 // Refuse to clobber a directory we didn't create, unless --force.
-if (fs.existsSync(appDir)) {
-  const marker = path.join(appDir, 'version.json');
+if (fs.existsSync(skillDir)) {
+  const marker = path.join(skillDir, 'version.json');
   let ours = false;
   try {
     ours = JSON.parse(fs.readFileSync(marker, 'utf-8')).name === BUILD.name;
   } catch { /* not ours */ }
   if (ours || opts.force) {
-    fs.rmSync(appDir, { recursive: true, force: true });
-  } else if (fs.readdirSync(appDir).length > 0) {
+    fs.rmSync(skillDir, { recursive: true, force: true });
+  } else if (fs.readdirSync(skillDir).length > 0) {
     console.error(
-      `\nRefusing to overwrite ${appDir}: it exists, is not empty, and was not\n` +
-      `created by this installer. Re-run with --force to overwrite it anyway,\n` +
-      `or pick another location with --app-dir.`
+      `\nRefusing to overwrite ${skillDir}: it exists, is not empty, and was not\n` +
+      `created by this installer. Re-run with --force to overwrite it anyway.`
     );
     process.exit(1);
   }
 }
 
-const appFiles = writeTree(appDir, MANIFEST.app);
+const skillFiles = writeTree(skillDir, MANIFEST.skill);
 fs.writeFileSync(
-  path.join(appDir, 'version.json'),
+  path.join(skillDir, 'version.json'),
   JSON.stringify(BUILD, null, 2) + '\n',
   'utf-8'
 );
-console.log(`\nInstalled app (${appFiles.length + 1} files).`);
-
-if (opts.skill) {
-  let skillFileCount = 0;
-  for (const skillDir of skillDirs) {
-    skillFileCount = writeTree(skillDir, MANIFEST.skill).length;
-  }
-  console.log(`Installed skill (${skillFileCount} files) to ${skillDirs.length} location(s).`);
-}
+console.log(`\nInstalled skill (${skillFiles.length + 1} files).`);
 
 console.log(`
 Done. Quick start:
-  parse a log:   node "${path.join(appDir, 'parser.js')}" "<cline-log-folder>"
-  dashboard:     node "${path.join(appDir, 'serve.mjs')}"   ->  http://localhost:8099/
-  clean output:  node "${path.join(appDir, 'clean.js')}"
+  parse a log:   node "${path.join(skillDir, 'scripts', 'parser.js')}" "<cline-log-folder>"
+  dashboard:     node "${path.join(skillDir, 'scripts', 'serve.mjs')}"   ->  http://localhost:8099/
+  clean output:  node "${path.join(skillDir, 'scripts', 'clean.js')}"
 
-Or just ask your agent (Claude Code / Cline) — the "cline-agent" skill drives
+Or just ask your agent (Cline) — the "cline-agent" skill drives
 all of the above. Requires Node.js v18+.
 
 To upgrade later, run the new installer file the same way — it replaces the
-app and skill in place.`);
+skill in place.`);
