@@ -193,19 +193,47 @@ if (watchMode) {
   // so a single logical update fires several fs events in quick succession.
   // Debounce and coalesce them into one re-parse.
   let debounceTimer = null;
+  let retryTimer = null;
+  let retryCount = 0;
+  const MAX_RETRIES = 5;
+  const RETRY_DELAY_MS = 2000;
+
+  function reparse(label) {
+    console.log(`\n[watch] ${label}, re-parsing...`);
+    try {
+      runParse();
+      retryCount = 0;
+    } catch (err) {
+      // The log may be mid-write (partial JSON). A later file-change event
+      // retries naturally, but if this was the task's *final* write no more
+      // events are coming — so also schedule a timed retry, bounded so a
+      // genuinely corrupt file doesn't retry forever.
+      if (retryCount < MAX_RETRIES) {
+        retryCount++;
+        console.error(`[watch] Re-parse failed (attempt ${retryCount}/${MAX_RETRIES}), retrying in ${RETRY_DELAY_MS / 1000}s:`, err.message);
+        if (retryTimer) clearTimeout(retryTimer);
+        retryTimer = setTimeout(() => {
+          retryTimer = null;
+          reparse('Retrying after failed parse');
+        }, RETRY_DELAY_MS);
+      } else {
+        console.error('[watch] Re-parse failed, giving up until the next file change:', err.message);
+      }
+    }
+  }
+
   fs.watch(taskDir, { persistent: true }, (eventType, filename) => {
     if (filename && !/^(ui_messages|api_conversation_history|task_metadata)\.json$/.test(filename)) return;
+    // A real file change supersedes any pending retry and resets its budget.
+    if (retryTimer) {
+      clearTimeout(retryTimer);
+      retryTimer = null;
+    }
+    retryCount = 0;
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       debounceTimer = null;
-      console.log(`\n[watch] Change detected (${filename || 'log file'}), re-parsing...`);
-      try {
-        runParse();
-      } catch (err) {
-        // The log may be mid-write (partial JSON) — skip this tick, the next
-        // file-change event will retry once the write settles.
-        console.error('[watch] Re-parse failed, will retry on next change:', err.message);
-      }
+      reparse(`Change detected (${filename || 'log file'})`);
     }, 500);
   });
 }

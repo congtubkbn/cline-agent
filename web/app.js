@@ -11,6 +11,7 @@ let refreshTimer = null;
 let lastParsedAt = null;
 let pendingParsedAt = null;
 let dismissedParsedAt = null;
+let isRefreshing = false;
 
 // DOM Elements
 const taskIdBadge = document.getElementById('task-id-badge');
@@ -250,7 +251,7 @@ async function loadTaskData(taskId, { preserveStep = false } = {}) {
   renderAnalysisPanel();
   renderTimeline();
   setupPlaybackSlider();
-  setCurrentStep(preserveStep ? Math.min(prevIndex, flowData.turns.length - 1) : 0);
+  setCurrentStep(preserveStep ? Math.max(0, Math.min(prevIndex, flowData.turns.length - 1)) : 0);
   setTimeout(initMermaid, 200);
 }
 
@@ -375,33 +376,46 @@ function hideUpdateBanner() {
 }
 
 async function checkForUpdates() {
-  if (!currentTaskId) return;
-  const newParsedAt = await fetchParsedAt(currentTaskId);
-  if (!newParsedAt || newParsedAt === lastParsedAt) return;
+  // isRefreshing keeps slow reloads from overlapping: with a large
+  // flow_data.json and a short interval, a second tick could otherwise start
+  // a concurrent loadTaskData and interleave renders/lastParsedAt updates.
+  if (!currentTaskId || isRefreshing) return;
+  isRefreshing = true;
+  try {
+    const newParsedAt = await fetchParsedAt(currentTaskId);
+    if (!newParsedAt || newParsedAt === lastParsedAt) return;
 
-  const { mode } = getRefreshSettings();
-  if (mode === 'auto') {
-    try {
+    const { mode } = getRefreshSettings();
+    if (mode === 'auto') {
+      // Don't re-render under an active playback — the playback timer would
+      // fight the refreshed panels. The next tick applies the update instead.
+      if (isPlaying) return;
       await loadTaskData(currentTaskId, { preserveStep: true });
       lastParsedAt = newParsedAt;
       hideUpdateBanner();
-    } catch (e) {
-      console.error('Auto-refresh failed:', e);
+    } else if (dismissedParsedAt !== newParsedAt) {
+      pendingParsedAt = newParsedAt;
+      showUpdateBanner();
     }
-  } else if (dismissedParsedAt !== newParsedAt) {
-    pendingParsedAt = newParsedAt;
-    showUpdateBanner();
+  } catch (e) {
+    console.error('Auto-refresh failed:', e);
+  } finally {
+    isRefreshing = false;
   }
 }
 
 async function applyPendingRefresh() {
-  if (!currentTaskId) return;
+  if (!currentTaskId || isRefreshing) return;
+  isRefreshing = true;
   try {
+    if (isPlaying) pause();
     await loadTaskData(currentTaskId, { preserveStep: true });
     lastParsedAt = pendingParsedAt;
     hideUpdateBanner();
   } catch (e) {
     console.error('Failed to apply refreshed data:', e);
+  } finally {
+    isRefreshing = false;
   }
 }
 
