@@ -30,3 +30,6 @@ analysis_report.md
 
 # Presentation assets (source pptx + rendered exports, not needed in repo)
 docs/presentation/
+
+# Agent local skills directory (for local testing)
+.agents/
