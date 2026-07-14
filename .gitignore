@@ -27,3 +27,6 @@ web/tasks/
 analysis.json
 analysis_report.md
 .auto-issue/
+
+# Presentation assets (source pptx + rendered exports, not needed in repo)
+docs/presentation/
