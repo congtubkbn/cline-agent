@@ -349,6 +349,41 @@ body {
   gap: 10px;
 }
 
+.update-banner {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  margin-bottom: 16px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: rgba(99, 102, 241, 0.16);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  color: var(--text-main);
+  font-size: 13px;
+  font-weight: 500;
+  backdrop-filter: blur(8px);
+}
+
+.update-banner.visible {
+  display: flex;
+}
+
+.update-banner span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.update-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .badge {
   padding: 6px 12px;
   border-radius: 8px;

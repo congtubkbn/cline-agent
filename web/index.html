@@ -31,6 +31,15 @@
   <div class="ambient-glow glow-cyan"></div>
 
   <div class="app-container">
+    <!-- Auto-refresh notification banner (Ask mode) -->
+    <div class="update-banner" id="update-banner">
+      <span><i data-lucide="sparkles"></i> New analysis data available</span>
+      <div class="update-banner-actions">
+        <button class="btn btn-primary btn-sm" id="btn-banner-reload">Reload</button>
+        <button class="btn-icon" id="btn-banner-dismiss" title="Dismiss" aria-label="Dismiss"><i data-lucide="x"></i></button>
+      </div>
+    </div>
+
     <!-- Header -->
     <header class="app-header">
       <div class="header-main">
@@ -47,6 +56,20 @@
           <label for="task-select"><i data-lucide="folder-open"></i> Task:</label>
           <select id="task-select">
             <!-- Dynamic task options go here -->
+          </select>
+        </div>
+        <div class="task-selector-area" id="refresh-controls-container" style="display: none;">
+          <label for="refresh-interval-select"><i data-lucide="refresh-cw"></i> Auto-refresh:</label>
+          <select id="refresh-interval-select" title="How often to check for new analysis data">
+            <option value="0">Off</option>
+            <option value="10000">10s</option>
+            <option value="30000">30s</option>
+            <option value="60000">1m</option>
+            <option value="300000">5m</option>
+          </select>
+          <select id="refresh-mode-select" title="Auto-apply new data, or ask first" disabled>
+            <option value="ask">Ask</option>
+            <option value="auto">Auto</option>
           </select>
         </div>
         <div class="task-badge-area">
