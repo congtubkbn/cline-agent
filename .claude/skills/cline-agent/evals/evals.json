@@ -1,0 +1,46 @@
+{
+  "skill_name": "cline-agent",
+  "notes": "Tests the serve->watch->open change: watch mode is now the DEFAULT live-debug path, server started once and reused, single watcher at a time. Baseline = pre-edit skill (parse->serve->open, watch as an advanced/opt-in section). Runs execute against real logs under cline-log/ with absolute paths. Because the flow drives a shared port 8099 and a shared web/flow_data.json, runs are executed in series, not parallel.",
+  "evals": [
+    {
+      "id": 0,
+      "name": "live-debug-default-watch",
+      "prompt": "Debug this cline run for me: e:/the.thoi/Project/cline-agent/cline-agent/cline-log/1782757522666",
+      "expected_output": "Skill stands up the always-live dashboard: starts serve.mjs (or reuses the one on 8099), runs the parser in --watch mode in the background, opens http://localhost:8099/, and tells the user to just refresh for new turns. The key discriminator vs baseline: neutral 'debug this run' phrasing should still choose --watch by default.",
+      "files": [],
+      "assertions": [
+        {"text": "Parser was invoked with the --watch (or -w) flag", "type": "discriminating"},
+        {"text": "The --watch parser was started in the background, not run blocking in the foreground", "type": "correctness"},
+        {"text": "Did not start a second server on 8099 (reused the running one) OR started serve.mjs in background", "type": "correctness"},
+        {"text": "Opened / pointed the user to http://localhost:8099/", "type": "correctness"},
+        {"text": "Told the user they only need to refresh the browser to see new turns", "type": "quality"}
+      ]
+    },
+    {
+      "id": 1,
+      "name": "explicitly-live-updating",
+      "prompt": "Task nay van dang chay trong Cline, log o e:/the.thoi/Project/cline-agent/cline-agent/cline-log/1782757930684 con dang append them. Mo dashboard cho toi theo doi realtime.",
+      "expected_output": "Both old and new skill should end up watching, but the new skill treats it as the default path. Parser run with --watch in background, server up on 8099, dashboard opened, user told to refresh.",
+      "files": [],
+      "assertions": [
+        {"text": "Parser was invoked with the --watch (or -w) flag", "type": "correctness"},
+        {"text": "The watcher was started in the background so the server can run alongside it", "type": "correctness"},
+        {"text": "Server is serving on 8099 and dashboard URL was opened", "type": "correctness"},
+        {"text": "Explained that new turns appear on browser refresh with no manual re-parse", "type": "quality"}
+      ]
+    },
+    {
+      "id": 2,
+      "name": "switch-log-server-already-up",
+      "prompt": "Server dashboard dang chay roi tren 8099. Gio toi muon xem mot run khac: e:/the.thoi/Project/cline-agent/cline-agent/cline-log/1782836272713",
+      "expected_output": "Skill should NOT start a second server (reuse 8099). It should point the watcher at the new folder, and avoid running two --watch processes at once (stop the old watcher first if one exists). Then user refreshes.",
+      "files": [],
+      "assertions": [
+        {"text": "Did NOT start a second serve.mjs on port 8099 (reused the existing server)", "type": "discriminating"},
+        {"text": "Pointed the parser at the NEW folder (1782836272713)", "type": "correctness"},
+        {"text": "Avoided running two --watch parsers simultaneously (stopped/killed the old watcher before starting a new one, or used a one-shot parse)", "type": "correctness"},
+        {"text": "Told the user to refresh the browser to see the new run", "type": "quality"}
+      ]
+    }
+  ]
+}

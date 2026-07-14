@@ -34,8 +34,10 @@ using the AskUserQuestion tool. Offer exactly these options:
 - **Clean** — run `npm run clean` to remove generated artifacts (`out/`,
   `flow_data.json`, `flow_report.md`, `flow_report.html`, `web/flow_data.json`,
   `web/sidecar/`).
-- **Live-debug** — ask for a Cline log folder, parse it, serve the dashboard, and
-  open it in the browser.
+- **Live-debug** — ask for a Cline log folder, then stand up an always-live
+  dashboard: serve it, watch the log (`--watch`, auto re-parses on every turn),
+  and open it in the browser. The server and watcher stay running so the user
+  just refreshes to see new turns.
 - **Package** — run `npm run package` to build the shareable installer
   (`dist/cline-agent-installer.mjs`).
 
@@ -58,7 +60,10 @@ start the server after a clean.
 
 ## Step 2b — Live-debug
 
-This is a three-part flow: **parse → serve → open**.
+This is a three-part flow: **serve → watch → open**. The server and the watcher
+are both long-lived — the point is an always-on dashboard that reflects the log
+as it grows, so the user never re-runs anything by hand. Start both in the
+background and leave them running.
 
 ### Get the log folder
 
@@ -73,16 +78,45 @@ resolves it automatically). Before parsing, confirm the folder exists and
 contains `ui_messages.json`; if not, tell the user what's missing rather than
 running a parse that will throw.
 
-### Parse
+### Serve
 
-Run the parser with the folder as its argument. Quote the path — Windows paths
-contain spaces.
+The dashboard is served by `serve.mjs` on port **8099**. The server is long-lived
+(it blocks), so start it in the background and leave it running:
 
 ```bash
-node parser.js "<log-folder-path>"
+node serve.mjs
 ```
 
-A successful run prints `Parsing completed successfully.` and writes
+If port 8099 is already serving (a server from an earlier run), reuse it — don't
+start a second one. A quick way to check is hitting `http://localhost:8099/`; a
+200 means it's already up. Because the dashboard reads `web/flow_data.json` fresh
+on each request, one long-running server serves whatever the watcher last wrote —
+you only ever start it once.
+
+### Watch (the default — parses now, then keeps re-parsing)
+
+Run the parser in **watch mode**. It parses once immediately (same output as a
+one-shot parse) and then re-parses automatically whenever `ui_messages.json`,
+`api_conversation_history.json`, or `task_metadata.json` change — debounced, so
+a burst of writes for one turn triggers a single re-parse. This is the default
+because most runs are either still live in Cline or will be re-inspected, and
+watch mode covers both without the user re-invoking anything. Quote the path —
+Windows paths contain spaces.
+
+```bash
+node parser.js "<log-folder-path>" --watch
+```
+
+Start it in the **background** so it stays running alongside the server. A change
+caught mid-write (partial JSON) is skipped with a logged warning and retried on
+the next change, so it's safe to leave running for the life of the task. Stop it
+with Ctrl+C (or kill the background job) once the task finishes.
+
+If the user explicitly only wants a single snapshot (e.g. a finished log they'll
+inspect once and never touch again), drop `--watch` to parse in the foreground:
+`node parser.js "<log-folder-path>"`.
+
+The first parse prints `Parsing completed successfully.` and writes
 `web/flow_data.json` plus sidecar files that the dashboard reads. It also writes
 two per-run reports next to the log: `<taskId>_flow_report.md` (for git/sharing;
 has a jump-to-turn TOC and collapsible turn bodies) and `<taskId>_flow_report.html`
@@ -96,19 +130,6 @@ and writes `<taskId>_analysis.json` (machine-readable, schema in
 Mention these to the user — they are the evaluation outputs, and the dashboard's
 **Analysis** tab renders the same data. If the parse fails, surface the error
 and stop — serving a stale or empty dataset is misleading.
-
-### Serve
-
-The dashboard is served by `serve.mjs` on port **8099**. The server is long-lived
-(it blocks), so start it in the background and leave it running:
-
-```bash
-node serve.mjs
-```
-
-If port 8099 is already serving (a server from an earlier run), reuse it — don't
-start a second one. A quick way to check is hitting `http://localhost:8099/`; a
-200 means it's already up.
 
 ### Open the dashboard
 
@@ -142,31 +163,20 @@ and the `cline-agent` skill to `~/.claude/skills/cline-agent/`. After source
 changes, re-running Package and re-sharing the new installer is the whole
 release flow. Details live in `docs/packaging.md`.
 
-## Re-parsing another log
+## Switching to another log
 
-To analyze a different run while the server is already up: re-run
-`node parser.js "<new-folder>"` (this overwrites `web/flow_data.json`), then have
-the user refresh the browser. No need to restart the server.
-
-## Watching a live-updating log
-
-If the task is still running in Cline (its `ui_messages.json` is actively being
-appended to), add `--watch` instead of manually re-running the parser after
-every turn:
+To analyze a different run while the server is already up, leave `serve.mjs`
+alone — only the watcher is bound to a folder. Kill the existing
+`parser.js --watch` background job and start a new one pointed at the new folder:
 
 ```bash
-node parser.js "<log-folder-path>" --watch
+node parser.js "<new-folder>" --watch
 ```
 
-This keeps the process running in the foreground and re-parses automatically
-whenever `ui_messages.json`, `api_conversation_history.json`, or
-`task_metadata.json` change (debounced, so a burst of writes for one turn only
-triggers one re-parse). Start it in the background alongside `serve.mjs` and
-tell the user to just refresh the browser to see new turns — no need to
-re-invoke the parser by hand. A change caught mid-write is skipped with a
-logged warning and retried on the next change, so it's safe to leave running
-for the life of the task. Stop it with Ctrl+C (or kill the background job)
-once the task finishes.
+It overwrites `web/flow_data.json`; the user just refreshes the browser. Never
+run two watchers at once — they'd fight over the same output file. If the user
+only wants a one-off look at the new log, a foreground `node parser.js
+"<new-folder>"` (no `--watch`) is enough.
 
 ## Notes
 
