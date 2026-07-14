@@ -79,8 +79,66 @@ fs.writeFileSync(
   'utf-8'
 );
 
-// 5. The distributable skill.
-fs.copyFileSync(path.join(root, 'packaging', 'SKILL.dist.md'), path.join(skillDist, 'SKILL.md'));
+// 5. The distributable skill (generated from the repo's SKILL.md to ensure they stay in sync).
+let skillContent = fs.readFileSync(path.join(root, '.claude', 'skills', 'cline-agent', 'SKILL.md'), 'utf-8');
+
+// Preprocess: remove local-only blocks (none in the simplified file, but good for future extension)
+skillContent = skillContent.replace(/<!-- #exclude-dist-start -->[\s\S]*?<!-- #exclude-dist-end -->/g, '');
+
+// Preprocess: uncomment dist-only blocks (none in the simplified file, but good for future extension)
+skillContent = skillContent.replace(/<!-- #include-dist-start\s*([\s\S]*?)\s*#include-dist-end -->/g, '$1');
+
+// Preprocess: replace repo commands/paths with distributed app-dir paths
+skillContent = skillContent
+  .replace(/npm run clean/g, 'node "<APP_DIR>/clean.js"')
+  .replace(/node serve\.mjs/g, 'node "<APP_DIR>/serve.mjs"')
+  .replace(/node parser\.js/g, 'node "<APP_DIR>/parser.js"');
+
+// Preprocess: replace local intro description and file setup instructions
+const searchHeader = '# Cline Agent Analyzer\n\nThis skill runs the Cline Agent Loop Analyzer (this repository) for the user. It\nexposes two operations behind a menu: **Clean** (reset generated output) and\n**Live-debug** (parse a Cline log and open the interactive dashboard).';
+
+const replacementHeader = `# Cline Agent Analyzer (installed distribution)
+
+This skill drives the Cline Agent Loop Analyzer **installed as an app** on this
+machine — there is no source repository here. All commands run against the
+install directory:
+
+- Windows: \`%\u0055SERPROFILE%\\.cline-agent-analyzer\`
+- macOS / Linux: \`~/.cline-agent-analyzer\`
+
+Call that path \`<APP_DIR>\` below. Resolve it first (e.g. in bash:
+\`APP_DIR="$HOME/.cline-agent-analyzer"\`; in PowerShell:
+\`$APP_DIR = "$env:USERPROFILE\\.cline-agent-analyzer"\`).
+
+**Before anything else**, verify the app is installed: \`<APP_DIR>/version.json\`
+must exist. If it doesn't, stop and tell the user to run the installer they
+were given (\`node cline-agent-installer.mjs\`) — do not try to reconstruct the
+app. To report the installed version, read \`version.json\` (fields: \`name\`,
+\`version\`, \`builtAt\`).
+
+This skill exposes two operations behind a menu: **Clean** (reset generated
+output) and **Live-debug** (parse a Cline log and open the interactive
+dashboard).`;
+
+skillContent = skillContent.replace(searchHeader, replacementHeader);
+
+// Preprocess: update description in frontmatter to refer to node commands instead of npm/node
+skillContent = skillContent.replace(
+  /description: >-[\s\S]*?flow stay consistent\./,
+  `description: >-
+  Drive the Cline Agent Loop Analyzer (installed app) — clean generated
+  artifacts or run a live-debug session on a Cline execution log. Use this
+  skill whenever the user wants to analyze, debug, replay, or visualize a Cline
+  agent run, parse a \`ui_messages.json\` log folder, clean the analyzer output,
+  or open the analyzer dashboard at http://localhost:8099/. Triggers on phrases
+  like "cline-agent", "analyze this cline log", "live debug the agent loop",
+  "clean the analyzer", "parse my cline run", "open the cline dashboard", or
+  any request to inspect a Cline agent's reasoning/turns. Prefer this skill
+  over running node commands by hand so the serve\u2192watch\u2192open flow stays
+  consistent.`
+);
+
+fs.writeFileSync(path.join(skillDist, 'SKILL.md'), skillContent, 'utf-8');
 
 // 6. Self-extracting installer: embed everything under dist/app and dist/skill.
 function collect(baseDir) {
