@@ -158,6 +158,24 @@ To analyze any execution trace from Cline:
 4. **Start the local server** (if not already running) using `node serve.mjs`.
 5. **Open the browser** at `http://localhost:8099/` to interactively debug your new execution loop!
 
+### Watching a live log
+
+If the log folder is still being written to (e.g. Cline is actively running that
+task), add `--watch` to keep re-parsing automatically whenever
+`ui_messages.json`, `api_conversation_history.json`, or `task_metadata.json`
+change, instead of re-running the command by hand after every turn:
+
+```bash
+node parser.js my-custom-task --watch
+```
+
+Each detected change re-runs the full parse and overwrites the same output
+files (`web/tasks/<taskId>/...`, `tasks.json`, reports). Refresh the browser
+tab to see the latest turns — the server in step 4 doesn't need to restart.
+Rapid successive writes are debounced into a single re-parse, and a change
+caught mid-write (partial JSON) is skipped with a logged warning; the next
+change retries. Stop watching with Ctrl+C.
+
 ---
 
 ## Testing Workflow
