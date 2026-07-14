@@ -7,6 +7,10 @@ let tokenChartInstance = null;
 let costChartInstance = null;
 let cacheChartInstance = null;
 let currentTaskId = null;
+let refreshTimer = null;
+let lastParsedAt = null;
+let pendingParsedAt = null;
+let dismissedParsedAt = null;
 
 // DOM Elements
 const taskIdBadge = document.getElementById('task-id-badge');
@@ -46,6 +50,13 @@ const btnCloseModal = document.getElementById('btn-close-modal');
 
 const taskSelectorContainer = document.getElementById('task-selector-container');
 const taskSelect = document.getElementById('task-select');
+
+const refreshControlsContainer = document.getElementById('refresh-controls-container');
+const refreshIntervalSelect = document.getElementById('refresh-interval-select');
+const refreshModeSelect = document.getElementById('refresh-mode-select');
+const updateBanner = document.getElementById('update-banner');
+const btnBannerReload = document.getElementById('btn-banner-reload');
+const btnBannerDismiss = document.getElementById('btn-banner-dismiss');
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
@@ -121,24 +132,48 @@ function setupEventListeners() {
       localStorage.setItem('selectedTaskId', selectedId);
       currentTaskId = selectedId;
       if (isPlaying) pause();
-      
-      // Load selected task data
+
+      // Switching tasks invalidates any pending/dismissed update from the previous task
+      pendingParsedAt = null;
+      dismissedParsedAt = null;
+      hideUpdateBanner();
+
       try {
-        const response = await fetch(`./tasks/${encodeURIComponent(currentTaskId)}/flow_data.json`);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        flowData = await response.json();
-        
-        // Reset and populate UI
-        populateOverview();
-        renderAnalysisPanel();
-        renderTimeline();
-        setupPlaybackSlider();
-        setCurrentStep(0);
-        setTimeout(initMermaid, 200);
+        await loadTaskData(currentTaskId);
+        lastParsedAt = await fetchParsedAt(currentTaskId);
       } catch (err) {
         console.error('Error switching task:', err);
         alert('Failed to load selected task data.');
       }
+    });
+  }
+
+  // Auto-refresh interval/mode selectors
+  if (refreshIntervalSelect) {
+    refreshIntervalSelect.addEventListener('change', (e) => {
+      const intervalMs = parseInt(e.target.value, 10) || 0;
+      const { mode } = getRefreshSettings();
+      saveRefreshSettings({ intervalMs, mode });
+      if (refreshModeSelect) refreshModeSelect.disabled = intervalMs === 0;
+      hideUpdateBanner();
+      armRefreshTimer();
+    });
+  }
+  if (refreshModeSelect) {
+    refreshModeSelect.addEventListener('change', (e) => {
+      const { intervalMs } = getRefreshSettings();
+      saveRefreshSettings({ intervalMs, mode: e.target.value });
+    });
+  }
+
+  // Update banner actions (Ask mode)
+  if (btnBannerReload) {
+    btnBannerReload.addEventListener('click', applyPendingRefresh);
+  }
+  if (btnBannerDismiss) {
+    btnBannerDismiss.addEventListener('click', () => {
+      dismissedParsedAt = pendingParsedAt;
+      hideUpdateBanner();
     });
   }
 
@@ -202,6 +237,36 @@ function setupEventListeners() {
   document.getElementById('btn-render-fta').addEventListener('click', initFtaMermaid);
 }
 
+// Fetch flow_data.json for one task and (re)render every panel that depends on it.
+// preserveStep keeps the current playback position (clamped to the new turn
+// count) instead of jumping back to turn 0 — used by auto-refresh so a
+// mid-review session isn't yanked back to the start on every poll.
+async function loadTaskData(taskId, { preserveStep = false } = {}) {
+  const prevIndex = currentStepIndex;
+  const response = await fetch(`./tasks/${encodeURIComponent(taskId)}/flow_data.json`, { cache: 'no-store' });
+  if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+  flowData = await response.json();
+  populateOverview();
+  renderAnalysisPanel();
+  renderTimeline();
+  setupPlaybackSlider();
+  setCurrentStep(preserveStep ? Math.min(prevIndex, flowData.turns.length - 1) : 0);
+  setTimeout(initMermaid, 200);
+}
+
+// Look up the catalog's parsedAt for a task, used to detect new analysis data.
+async function fetchParsedAt(taskId) {
+  try {
+    const response = await fetch('./tasks.json', { cache: 'no-store' });
+    if (!response.ok) return null;
+    const tasksList = await response.json();
+    const entry = tasksList.find(t => t.taskId === taskId);
+    return entry ? entry.parsedAt : null;
+  } catch (e) {
+    return null;
+  }
+}
+
 // Fetch Log Flow Data
 async function fetchData() {
   try {
@@ -216,12 +281,11 @@ async function fetchData() {
       console.log('No tasks.json catalog found, falling back to legacy flow_data.json');
     }
 
-    let fetchUrl = './flow_data.json';
-
     if (tasksList && tasksList.length > 0) {
       taskSelectorContainer.style.display = 'flex';
+      refreshControlsContainer.style.display = 'flex';
       taskSelect.innerHTML = '';
-      
+
       tasksList.forEach(t => {
         const opt = document.createElement('option');
         opt.value = t.taskId;
@@ -238,27 +302,106 @@ async function fetchData() {
       taskSelect.value = lastTaskId;
       currentTaskId = lastTaskId;
 
-      fetchUrl = `./tasks/${encodeURIComponent(currentTaskId)}/flow_data.json`;
+      await loadTaskData(currentTaskId);
+      const entry = tasksList.find(t => t.taskId === currentTaskId);
+      lastParsedAt = entry ? entry.parsedAt : null;
+      initAutoRefreshControls();
     } else {
       taskSelectorContainer.style.display = 'none';
+      refreshControlsContainer.style.display = 'none';
       currentTaskId = null;
-    }
 
-    const response = await fetch(fetchUrl);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const response = await fetch('./flow_data.json');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      flowData = await response.json();
+      populateOverview();
+      renderAnalysisPanel();
+      renderTimeline();
+      setupPlaybackSlider();
+      setCurrentStep(0);
+      setTimeout(initMermaid, 200);
     }
-    flowData = await response.json();
-    populateOverview();
-    renderAnalysisPanel();
-    renderTimeline();
-    setupPlaybackSlider();
-    setCurrentStep(0);
-    setTimeout(initMermaid, 200);
   } catch (error) {
     console.error('Error fetching flow data:', error);
     initialPrompt.textContent = 'Error loading data: Please make sure parser.js has run successfully.';
     initialPrompt.style.color = '#f43f5e';
+  }
+}
+
+// ===== Auto-refresh =====
+function getRefreshSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('analyzerAutoRefresh'));
+    if (saved && typeof saved.intervalMs === 'number' && (saved.mode === 'auto' || saved.mode === 'ask')) {
+      return saved;
+    }
+  } catch (e) {}
+  return { intervalMs: 0, mode: 'ask' };
+}
+
+function saveRefreshSettings(settings) {
+  try { localStorage.setItem('analyzerAutoRefresh', JSON.stringify(settings)); } catch (e) {}
+}
+
+function initAutoRefreshControls() {
+  const { intervalMs, mode } = getRefreshSettings();
+  if (refreshIntervalSelect) refreshIntervalSelect.value = String(intervalMs);
+  if (refreshModeSelect) {
+    refreshModeSelect.value = mode;
+    refreshModeSelect.disabled = intervalMs === 0;
+  }
+  armRefreshTimer();
+}
+
+function armRefreshTimer() {
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+    refreshTimer = null;
+  }
+  const { intervalMs } = getRefreshSettings();
+  if (intervalMs > 0) {
+    refreshTimer = setInterval(checkForUpdates, intervalMs);
+  }
+}
+
+function showUpdateBanner() {
+  if (updateBanner) updateBanner.classList.add('visible');
+}
+
+function hideUpdateBanner() {
+  if (updateBanner) updateBanner.classList.remove('visible');
+}
+
+async function checkForUpdates() {
+  if (!currentTaskId) return;
+  const newParsedAt = await fetchParsedAt(currentTaskId);
+  if (!newParsedAt || newParsedAt === lastParsedAt) return;
+
+  const { mode } = getRefreshSettings();
+  if (mode === 'auto') {
+    try {
+      await loadTaskData(currentTaskId, { preserveStep: true });
+      lastParsedAt = newParsedAt;
+      hideUpdateBanner();
+    } catch (e) {
+      console.error('Auto-refresh failed:', e);
+    }
+  } else if (dismissedParsedAt !== newParsedAt) {
+    pendingParsedAt = newParsedAt;
+    showUpdateBanner();
+  }
+}
+
+async function applyPendingRefresh() {
+  if (!currentTaskId) return;
+  try {
+    await loadTaskData(currentTaskId, { preserveStep: true });
+    lastParsedAt = pendingParsedAt;
+    hideUpdateBanner();
+  } catch (e) {
+    console.error('Failed to apply refreshed data:', e);
   }
 }
 

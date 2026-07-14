@@ -138,6 +138,25 @@ To analyze a different run while the server is already up: re-run
 `web/flow_data.json`), then have the user refresh the browser. No need to
 restart the server.
 
+## Watching a live-updating log
+
+If the task is still running in Cline (its `ui_messages.json` is actively
+being appended to), add `--watch` instead of manually re-running the parser
+after every turn:
+
+```bash
+node "<APP_DIR>/parser.js" "<log-folder-path>" --watch
+```
+
+This keeps the process running in the foreground and re-parses automatically
+whenever `ui_messages.json`, `api_conversation_history.json`, or
+`task_metadata.json` change (debounced, so a burst of writes for one turn
+only triggers one re-parse). Start it in the background alongside `serve.mjs`
+and tell the user to just refresh the browser to see new turns. A change
+caught mid-write is skipped with a logged warning and retried on the next
+change, so it's safe to leave running for the life of the task. Stop it with
+Ctrl+C (or kill the background job) once the task finishes.
+
 ## Upgrading
 
 If the user says the analyzer is outdated or hands you a new
