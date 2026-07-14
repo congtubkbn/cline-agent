@@ -87,11 +87,11 @@ The dashboard is served by `serve.mjs` on port **8099**. The server is long-live
 node serve.mjs
 ```
 
-If port 8099 is already serving (a server from an earlier run), reuse it — don't
-start a second one. A quick way to check is hitting `http://localhost:8099/`; a
-200 means it's already up. Because the dashboard reads `web/flow_data.json` fresh
-on each request, one long-running server serves whatever the watcher last wrote —
-you only ever start it once.
+Always run `node serve.mjs` to ensure the server is active. The script automatically handles port reuse and workspace conflicts:
+- If a server is already running for the current project, it will detect this and exit immediately without error (so it is safe to run it multiple times).
+- If port 8099 is occupied by a server from a different project/location, it will request that server to shutdown and start the new one in its place.
+- If it is occupied by a different application entirely, it will report an error.
+Because the dashboard reads `web/flow_data.json` fresh on each request, a single running server automatically serves whatever the watcher last wrote.
 
 ### Watch (the default — parses now, then keeps re-parsing)
 
