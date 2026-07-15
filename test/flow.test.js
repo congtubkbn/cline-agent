@@ -22,3 +22,24 @@ test('buildFlow produces totals, turns with intents, completion', () => {
   // mermaid present
   assert.match(flow.mermaid, /flowchart TD/);
 });
+
+// CASE A/B: totals are scoped to a single task and always start from zero.
+// Building the same run twice must yield identical totals — proving no shared
+// accumulator survives between builds, which is what makes a fresh/new task id
+// reset to 0 instead of inheriting the previous task's numbers.
+test('buildFlow totals start from zero and do not accumulate across builds', () => {
+  const run = load('cline-log/1782757522666');
+  const opts = { thresholdTokens: 200, sink: () => {} };
+  const a = buildFlow(run, opts);
+  const b = buildFlow(run, opts);
+
+  // Known single-task totals — the sum must not double on a second build.
+  assert.equal(a.totals.tokensIn, 330145);
+  assert.equal(a.totals.tokensOut, 12664);
+  assert.equal(a.totals.cacheReads, 949248);
+
+  assert.equal(b.totals.tokensIn, a.totals.tokensIn);
+  assert.equal(b.totals.tokensOut, a.totals.tokensOut);
+  assert.equal(b.totals.cacheReads, a.totals.cacheReads);
+  assert.equal(b.totals.turns, a.totals.turns);
+});
