@@ -25,8 +25,7 @@ flowchart LR
     F -->|"gửi 1 file duy nhất<br/>(chat, email, ổ chia sẻ...)"| G
 
     subgraph Recipient["Vai trò: Người nhận (máy khác)"]
-        G["node cline-agent-installer.mjs"] --> H["App: ~/.cline-agent-analyzer"]
-        G --> I["Skill: ~/.claude/skills/cline-agent/<br/>~/.agents/skills/cline-agent/"]
+        G["node cline-agent-installer.mjs"] --> I["Skill + App: ~/.agents/skills/cline-agent/"]
         I --> J["Nói với agent: 'analyze this cline log'"]
     end
 ```
@@ -128,11 +127,9 @@ kiểm tra dependency rồi chạy đúng lệnh trên.
   |---|---|
   | `dist/cline-agent-installer.mjs` | **File duy nhất cần gửi.** Self-extracting, nhúng base64 toàn bộ app + skill. |
   | `dist/app/` | Bản app đã bundle để kiểm tra thủ công (`parser.js`, `clean.js`, `serve.mjs`, `web/`, `docs/`, `package.json`). |
-  | `dist/skill/cline-agent/SKILL.md` | Skill bản phân phối, build từ `packaging/SKILL.dist.md`. |
+  | `dist/skill/cline-agent/SKILL.md` | Skill bản phân phối, build từ `.claude/skills/cline-agent/SKILL.md`. |
 
-- Muốn đổi nội dung skill mà người nhận thấy → sửa `packaging/SKILL.dist.md`
-  (**không phải** `.claude/skills/cline-agent/SKILL.md`, file đó chỉ dùng
-  trong repo dev này).
+- Muốn đổi nội dung skill mà người nhận thấy → sửa [.claude/skills/cline-agent/SKILL.md](file:///e:/the.thoi/Project/cline-agent/cline-agent/.claude/skills/cline-agent/SKILL.md) (sau đó quá trình đóng gói sẽ tự động tối ưu hóa file này thành bản phân phối).
 - Sau khi sửa `src/` xong, luôn build lại (`npm run package`) trước khi gửi
   installer mới — installer không tự đồng bộ với source đang thay đổi.
 
@@ -162,14 +159,11 @@ dist/cline-agent-installer.mjs
 node cline-agent-installer.mjs
 ```
 
-### Chi tiết — installer làm 2 việc
-1. Cài app vào `~/.cline-agent-analyzer` (Windows:
-   `%USERPROFILE%\.cline-agent-analyzer`) — bản đã bundle/minify, **không có
-   source tree**.
-2. Cài skill **`cline-agent`** vào cả hai nơi (không cần biết trước người
-   dùng chạy Claude Code hay Cline):
-   - `~/.claude/skills/cline-agent/` (Claude Code)
-   - `~/.agents/skills/cline-agent/` (Cline)
+### Chi tiết — hoạt động của installer
+Installer sẽ giải nén và cài đặt toàn bộ ứng dụng cùng các file script thực thi đi kèm vào thư mục skill của Agent:
+- Thư mục mặc định: `~/.agents/skills/cline-agent/` (Windows: `%USERPROFILE%\.agents\skills\cline-agent`).
+
+Ứng dụng chạy trực tiếp bên trong thư mục này (ở thư mục con `scripts/`), không có thư mục ứng dụng riêng biệt ngoài thư mục skill.
 
 Sau khi cài, người nhận **không cần biết command nào cả** — chỉ cần nói với
 agent của họ, ví dụ:
@@ -181,10 +175,8 @@ parse → serve → mở trình duyệt tại `http://localhost:8099/`.
 ### Cờ tuỳ chọn khi cài
 | Cờ | Ý nghĩa |
 |---|---|
-| `--app-dir <dir>` | Cài app vào thư mục khác thay vì `~/.cline-agent-analyzer`. |
-| `--project <dir>` | Cài skill theo project (`<dir>/.claude/skills/cline-agent` + `<dir>/.agents/skills/cline-agent`) thay vì global. |
-| `--no-skill` | Chỉ cài app, bỏ qua skill. |
-| `--force` | Cho phép ghi đè thư mục app không do installer tạo (mặc định từ chối để an toàn). |
+| `--project <dir>` | Cài skill theo project (`<dir>/.agents/skills/cline-agent`) thay vì global. |
+| `--force` | Cho phép ghi đè thư mục skill cũ không do installer tạo (mặc định từ chối để an toàn). |
 
 ---
 
@@ -200,8 +192,7 @@ node cline-agent-installer.mjs
 - Installer đọc `version.json` của bản đã cài để nhận diện, rồi thay thế
   sạch (an toàn: từ chối ghi đè nếu thư mục không phải do installer tạo,
   trừ khi có `--force`).
-- Log đã parse (`~/.cline-agent-analyzer/...`) không bị đụng tới khi
-  upgrade.
+- Log đã parse không bị đụng tới khi upgrade.
 
 ---
 
