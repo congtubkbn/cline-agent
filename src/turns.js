@@ -1,15 +1,18 @@
-// A turn = from one api_req_started up to (excluding) the next.
-// Pre-LLM events (before the first api_req_started, e.g. the task prompt)
-// attach to a synthetic turn index -1 "preamble" only if present; otherwise ignored here.
+// A turn = from one api_req_started (or task initialization) up to (excluding) the next.
+// Pre-LLM events (after the 'task' prompt but before the first 'api_req_started')
+// are captured in Turn 0.
 export function groupTurns(events) {
   const turns = [];
   let cur = null;
+  let startedWithTask = false;
+  let hasEnrichedTurn0 = false;
+
   for (const e of events) {
-    if (e.subtype === 'api_req_started') {
+    if (e.subtype === 'task' && turns.length === 0) {
       cur = {
         index: turns.length,
         tsStart: e.ts, tsEnd: e.ts, durationMs: 0,
-        request: { ts: e.ts, data: e.data || {}, text: e.text },
+        request: { ts: e.ts, data: {}, text: e.text },
         reasoning: null,
         texts: [],
         actions: [],
@@ -18,9 +21,34 @@ export function groupTurns(events) {
         checkpoint: null
       };
       turns.push(cur);
+      startedWithTask = true;
       continue;
     }
-    if (!cur) continue; // skip pre-LLM events (task prompt handled separately)
+
+    if (e.subtype === 'api_req_started') {
+      if (startedWithTask && !hasEnrichedTurn0) {
+        // Enrich Turn 0 with the actual API request details
+        cur.tsStart = Math.min(cur.tsStart, e.ts);
+        cur.request = { ts: e.ts, data: e.data || {}, text: e.text };
+        hasEnrichedTurn0 = true;
+      } else {
+        cur = {
+          index: turns.length,
+          tsStart: e.ts, tsEnd: e.ts, durationMs: 0,
+          request: { ts: e.ts, data: e.data || {}, text: e.text },
+          reasoning: null,
+          texts: [],
+          actions: [],
+          errors: [],
+          taskProgress: null,
+          checkpoint: null
+        };
+        turns.push(cur);
+      }
+      continue;
+    }
+
+    if (!cur) continue; // skip pre-LLM events if 'task' wasn't present
     cur.tsEnd = e.ts;
     cur.durationMs = cur.tsEnd - cur.tsStart;
     switch (e.subtype) {

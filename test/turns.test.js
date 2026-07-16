@@ -36,3 +36,29 @@ test('real sample has 29 turns', () => {
   const turns = groupTurns(run.events);
   assert.equal(turns.length, 29);
 });
+
+test('handles freshly started task with only task event', () => {
+  const events = [
+    { subtype: 'task', text: 'new task prompt', ts: 1000 }
+  ];
+  const turns = groupTurns(events);
+  assert.equal(turns.length, 1);
+  assert.equal(turns[0].index, 0);
+  assert.equal(turns[0].request.text, 'new task prompt');
+  assert.equal(turns[0].tsStart, 1000);
+});
+
+test('captures pre-LLM checkpoint_created in Turn 0', () => {
+  const events = [
+    { subtype: 'task', text: 'new task prompt', ts: 1000 },
+    { subtype: 'checkpoint_created', lastCheckpointHash: 'init_hash', isCheckpointCheckedOut: false, ts: 1100 },
+    { subtype: 'api_req_started', text: '{"request":"Full prompt details"}', data: { request: 'Full prompt details' }, ts: 1200 }
+  ];
+  const turns = groupTurns(events);
+  assert.equal(turns.length, 1);
+  assert.equal(turns[0].tsStart, 1000);
+  assert.ok(turns[0].checkpoint);
+  assert.equal(turns[0].checkpoint.hash, 'init_hash');
+  assert.equal(turns[0].request.text, '{"request":"Full prompt details"}');
+});
+
