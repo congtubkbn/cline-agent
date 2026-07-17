@@ -428,6 +428,23 @@ function formatDuration(ms) {
   return `${mins}m ${secs}s`;
 }
 
+// Format JSON text to wrap sidecar file paths in clickable elements
+function formatJsonWithLinks(jsonStr) {
+  let html = jsonStr
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  
+  // Find "sidecar/..." strings and wrap them in a clickable span
+  // e.g. "sidecar": "sidecar/0_req_request.txt"
+  html = html.replace(/"(sidecar\/[^"]+)"/g, (match, p1) => {
+    return `<span class="sidecar-link-inspect" onclick="openSidecarModal('${p1}')">"${p1}"</span>`;
+  });
+  
+  return html;
+}
+
+
 // Populate Header and Overview Stats
 function populateOverview() {
   if (!flowData) return;
@@ -686,8 +703,8 @@ function updateActiveStepDetails() {
     simCheckpoint.innerHTML = '<span class="text-muted">No Git checkpoint</span>';
   }
 
-  // Raw Inspector Tab update
-  jsonInspector.textContent = JSON.stringify(step, null, 2);
+  // Raw Inspector Tab update (rendered with clickable sidecar links)
+  jsonInspector.innerHTML = formatJsonWithLinks(JSON.stringify(step, null, 2));
 
   lucide.createIcons();
 }
