@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
+    "start": "node start.js",
     "parse": "node parser.js",
     "clean": "node clean.js",
     "package": "node scripts/build-installer.mjs",
