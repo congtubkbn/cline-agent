@@ -500,7 +500,23 @@ function populateOverview() {
 
   initialPrompt.textContent = prompt;
 
-  statDuration.textContent = formatDuration(stats.durationMs);
+  const elapsedStr = formatDuration(stats.durationMs);
+  const activeDurationMs = flowData.turns.reduce((acc, t) => acc + (t.durationMs || 0), 0);
+  const activeStr = formatDuration(activeDurationMs);
+  const idleDurationMs = Math.max(0, stats.durationMs - activeDurationMs);
+  const idleStr = formatDuration(idleDurationMs);
+
+  statDuration.textContent = elapsedStr;
+  
+  const statActiveDuration = document.getElementById('stat-active-duration');
+  if (statActiveDuration) {
+    statActiveDuration.textContent = `Active: ${activeStr}`;
+  }
+
+  const durationCard = document.getElementById('card-duration');
+  if (durationCard) {
+    durationCard.setAttribute('title', `Tổng thời gian trôi qua: ${elapsedStr}\nThời gian AI hoạt động: ${activeStr}\nThời gian chờ/Idle: ${idleStr}`);
+  }
   statTokens.textContent = `${stats.totalTokensIn.toLocaleString()} / ${stats.totalTokensOut.toLocaleString()}`;
   
   const cacheHitRate = stats.totalCacheReads > 0 

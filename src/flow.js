@@ -74,8 +74,9 @@ export function buildFlow(run, { thresholdTokens = 200, perKind = {}, sink } = {
     acc.tokensIn += t.request.tokensIn; acc.tokensOut += t.request.tokensOut;
     acc.cost += t.request.cost; acc.cacheReads += t.request.cacheReads;
     acc.cacheWrites += t.request.cacheWrites;
+    acc.activeDurationMs += (t.durationMs || 0);
     return acc;
-  }, { turns: turns.length, events: run.events.length, tokensIn: 0, tokensOut: 0, cost: 0, cacheReads: 0, cacheWrites: 0 });
+  }, { turns: turns.length, events: run.events.length, tokensIn: 0, tokensOut: 0, cost: 0, cacheReads: 0, cacheWrites: 0, activeDurationMs: 0 });
   const ts = run.events.map(e => e.ts).filter(Boolean);
   let minTs = ts[0] || 0;
   let maxTs = ts[0] || 0;
@@ -88,6 +89,7 @@ export function buildFlow(run, { thresholdTokens = 200, perKind = {}, sink } = {
   // `stats` is an alias of `totals` using the field names the web UI reads.
   const stats = {
     durationMs: totals.durationMs,
+    activeDurationMs: totals.activeDurationMs,
     totalSteps: totals.turns,
     totalEvents: totals.events,
     totalTokensIn: totals.tokensIn,

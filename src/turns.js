@@ -6,12 +6,13 @@ export function groupTurns(events) {
   let cur = null;
   let startedWithTask = false;
   let hasEnrichedTurn0 = false;
+  let lastEventTs = 0;
 
   for (const e of events) {
     if (e.subtype === 'task' && turns.length === 0) {
       cur = {
         index: turns.length,
-        tsStart: e.ts, tsEnd: e.ts, durationMs: 0,
+        tsStart: e.ts, tsEnd: e.ts, durationMs: 0, idleMs: 0,
         request: { ts: e.ts, data: {}, text: e.text },
         reasoning: null,
         texts: [],
@@ -22,6 +23,7 @@ export function groupTurns(events) {
       };
       turns.push(cur);
       startedWithTask = true;
+      lastEventTs = e.ts;
       continue;
     }
 
@@ -34,7 +36,7 @@ export function groupTurns(events) {
       } else {
         cur = {
           index: turns.length,
-          tsStart: e.ts, tsEnd: e.ts, durationMs: 0,
+          tsStart: e.ts, tsEnd: e.ts, durationMs: 0, idleMs: 0,
           request: { ts: e.ts, data: e.data || {}, text: e.text },
           reasoning: null,
           texts: [],
@@ -45,14 +47,18 @@ export function groupTurns(events) {
         };
         turns.push(cur);
       }
+      lastEventTs = e.ts;
       continue;
     }
 
     if (!cur) continue; // skip pre-LLM events if 'task' wasn't present
-    if (e.subtype !== 'user_feedback' && e.subtype !== 'resume_task' && e.subtype !== 'resume_completed_task') {
+    if (e.subtype === 'user_feedback' || e.subtype === 'resume_task' || e.subtype === 'resume_completed_task') {
+      cur.idleMs += Math.max(0, e.ts - lastEventTs);
+    } else {
       cur.tsEnd = e.ts;
-      cur.durationMs = cur.tsEnd - cur.tsStart;
+      cur.durationMs = Math.max(0, (cur.tsEnd - cur.tsStart) - cur.idleMs);
     }
+    lastEventTs = e.ts;
     switch (e.subtype) {
       case 'reasoning':
         cur.reasoning = cur.reasoning
