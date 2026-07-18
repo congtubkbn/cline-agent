@@ -12,6 +12,7 @@ let lastParsedAt = null;
 let pendingParsedAt = null;
 let dismissedParsedAt = null;
 let isRefreshing = false;
+let currentTimelineFilter = 'all';
 
 // DOM Elements
 const taskIdBadge = document.getElementById('task-id-badge');
@@ -177,6 +178,17 @@ function setupEventListeners() {
       hideUpdateBanner();
     });
   }
+
+  // Timeline filters
+  const filterButtons = document.querySelectorAll('.btn-filter');
+  filterButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentTimelineFilter = btn.dataset.filter || 'all';
+      applyTimelineFilter();
+    });
+  });
 
   // Tabs navigation
   const tabButtons = document.querySelectorAll('.tab-btn');
@@ -554,7 +566,33 @@ function renderTimeline() {
     timelineList.appendChild(item);
   });
 
+  applyTimelineFilter();
   lucide.createIcons();
+}
+
+// Apply current timeline filter
+function applyTimelineFilter() {
+  if (!timelineList) return;
+  const items = timelineList.querySelectorAll('.timeline-item');
+  items.forEach(item => {
+    const isTool = item.classList.contains('item-tool');
+    const isCommand = item.classList.contains('item-command');
+    
+    let visible = false;
+    if (currentTimelineFilter === 'all') {
+      visible = true;
+    } else if (currentTimelineFilter === 'tool' && isTool) {
+      visible = true;
+    } else if (currentTimelineFilter === 'command' && isCommand) {
+      visible = true;
+    }
+    
+    if (visible) {
+      item.classList.remove('filtered-out');
+    } else {
+      item.classList.add('filtered-out');
+    }
+  });
 }
 
 // Set current step and update UI

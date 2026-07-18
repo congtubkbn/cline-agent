@@ -1493,3 +1493,8 @@ input[type=range]::-webkit-slider-thumb:hover {
   color: var(--cyan) !important;
 }
 
+/* Timeline filter utilities */
+.filtered-out {
+  display: none !important;
+}
+
