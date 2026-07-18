@@ -13,6 +13,7 @@ let pendingParsedAt = null;
 let dismissedParsedAt = null;
 let isRefreshing = false;
 let currentTimelineFilter = 'all';
+let currentSearchQuery = '';
 
 // DOM Elements
 const taskIdBadge = document.getElementById('task-id-badge');
@@ -66,6 +67,13 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchData();
   setupEventListeners();
   if (window.lucide) lucide.createIcons();
+
+  // Initialize Pan & Zoom on both diagram containers
+  const ftaContainer = document.querySelector('#tab-analysis .mermaid-render-box');
+  if (ftaContainer) enablePanAndZoom(ftaContainer);
+  
+  const mmdContainer = document.querySelector('#tab-mermaid .mermaid-render-box');
+  if (mmdContainer) enablePanAndZoom(mmdContainer);
 });
 
 // ===== Theme switching =====
@@ -189,6 +197,15 @@ function setupEventListeners() {
       applyTimelineFilter();
     });
   });
+
+  // Timeline search
+  const timelineSearch = document.getElementById('timeline-search');
+  if (timelineSearch) {
+    timelineSearch.addEventListener('input', (e) => {
+      currentSearchQuery = e.target.value.toLowerCase().trim();
+      applyTimelineFilter();
+    });
+  }
 
   // Tabs navigation
   const tabButtons = document.querySelectorAll('.tab-btn');
@@ -570,23 +587,70 @@ function renderTimeline() {
   lucide.createIcons();
 }
 
-// Apply current timeline filter
+// Apply current timeline filter & search query
 function applyTimelineFilter() {
-  if (!timelineList) return;
+  if (!timelineList || !flowData) return;
   const items = timelineList.querySelectorAll('.timeline-item');
   items.forEach(item => {
+    const idx = parseInt(item.dataset.index, 10);
+    const step = flowData.turns[idx];
+    if (!step) return;
+
     const isTool = item.classList.contains('item-tool');
     const isCommand = item.classList.contains('item-command');
     
-    let visible = false;
+    // 1. Check type filter
+    let matchesType = false;
     if (currentTimelineFilter === 'all') {
-      visible = true;
+      matchesType = true;
     } else if (currentTimelineFilter === 'tool' && isTool) {
-      visible = true;
+      matchesType = true;
     } else if (currentTimelineFilter === 'command' && isCommand) {
-      visible = true;
+      matchesType = true;
     }
     
+    // 2. Check search query
+    let matchesSearch = true;
+    if (currentSearchQuery) {
+      matchesSearch = false;
+      
+      // Search in Turn Index
+      if (String(step.index).includes(currentSearchQuery)) {
+        matchesSearch = true;
+      }
+      // Search in Reasoning Preview/Text
+      else if (step.reasoning && (
+        (step.reasoning.preview && step.reasoning.preview.toLowerCase().includes(currentSearchQuery)) ||
+        (step.reasoning.text && step.reasoning.text.toLowerCase().includes(currentSearchQuery))
+      )) {
+        matchesSearch = true;
+      }
+      // Search in Actions
+      else if (step.actions && step.actions.length > 0) {
+        for (const act of step.actions) {
+          const whatStr = act.kind === 'tool' 
+            ? `${act.what.tool || ''} ${act.what.path || ''}` 
+            : (act.what.command || '');
+          if (whatStr.toLowerCase().includes(currentSearchQuery) || 
+              (act.why && act.why.toLowerCase().includes(currentSearchQuery)) ||
+              (act.text && act.text.preview && act.text.preview.toLowerCase().includes(currentSearchQuery))) {
+            matchesSearch = true;
+            break;
+          }
+        }
+      }
+      // Search in general say texts
+      else if (step.texts && step.texts.length > 0) {
+        for (const x of step.texts) {
+          if (x.text && x.text.toLowerCase().includes(currentSearchQuery)) {
+            matchesSearch = true;
+            break;
+          }
+        }
+      }
+    }
+    
+    const visible = matchesType && matchesSearch;
     if (visible) {
       item.classList.remove('filtered-out');
     } else {
@@ -1066,6 +1130,10 @@ function initFtaMermaid() {
   box.textContent = flowData.ftaMermaid;
   try {
     mermaid.init(undefined, box);
+    
+    // Reset zoom after rendering new diagram
+    const ftaContainer = document.querySelector('#tab-analysis .mermaid-render-box');
+    if (ftaContainer && ftaContainer.resetZoom) ftaContainer.resetZoom();
   } catch (err) {
     console.error('FTA mermaid render error:', err);
   }
@@ -1079,6 +1147,10 @@ function initMermaid() {
   mermaidBox.textContent = flowData.mermaid;
   try {
     mermaid.init(undefined, mermaidBox);
+    
+    // Reset zoom after rendering new diagram
+    const mmdContainer = document.querySelector('#tab-mermaid .mermaid-render-box');
+    if (mmdContainer && mmdContainer.resetZoom) mmdContainer.resetZoom();
   } catch (err) {
     console.error('Mermaid render error:', err);
   }
@@ -1090,3 +1162,155 @@ mermaid.initialize({
   theme: 'dark',
   securityLevel: 'loose'
 });
+
+// ===== Pan & Zoom functionality =====
+function enablePanAndZoom(container) {
+  if (!container) return;
+  
+  let scale = 1;
+  let translateX = 0;
+  let translateY = 0;
+  let isDragging = false;
+  let startX = 0;
+  let startY = 0;
+  
+  // Set up overlay controls
+  setupControlOverlay(container);
+
+  // Apply transform to the SVG child
+  function updateTransform() {
+    const svg = container.querySelector('svg');
+    if (svg) {
+      svg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+      svg.style.transformOrigin = '0 0';
+    }
+  }
+
+  // Handle Zoom (Wheel event)
+  container.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const svg = container.querySelector('svg');
+    if (!svg) return;
+
+    const zoomIntensity = 0.1;
+    const minScale = 0.15;
+    const maxScale = 10;
+    
+    const rect = container.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    const svgX = (mouseX - translateX) / scale;
+    const svgY = (mouseY - translateY) / scale;
+
+    const delta = -e.deltaY;
+    let newScale = scale;
+    if (delta > 0) {
+      newScale = scale * (1 + zoomIntensity);
+    } else {
+      newScale = scale / (1 + zoomIntensity);
+    }
+    
+    newScale = Math.min(Math.max(minScale, newScale), maxScale);
+
+    translateX = mouseX - svgX * newScale;
+    translateY = mouseY - svgY * newScale;
+    scale = newScale;
+
+    updateTransform();
+  }, { passive: false });
+
+  // Handle Pan (Mouse Drag)
+  container.addEventListener('mousedown', (e) => {
+    // Only drag with left mouse click, and ignore clicks on UI buttons
+    if (e.button !== 0 || e.target.closest('.zoom-controls-overlay')) return;
+    
+    const svg = container.querySelector('svg');
+    if (!svg) return;
+
+    isDragging = true;
+    container.classList.add('is-dragging');
+    startX = e.clientX - translateX;
+    startY = e.clientY - translateY;
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    translateX = e.clientX - startX;
+    translateY = e.clientY - startY;
+    updateTransform();
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (isDragging) {
+      isDragging = false;
+      container.classList.remove('is-dragging');
+    }
+  });
+
+  // Expose reset zoom function
+  container.resetZoom = function() {
+    scale = 1;
+    translateX = 0;
+    translateY = 0;
+    updateTransform();
+  };
+  
+  // Custom Zoom Functions for the overlay buttons
+  container.zoomIn = function() {
+    const rect = container.getBoundingClientRect();
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    const svgX = (cx - translateX) / scale;
+    const svgY = (cy - translateY) / scale;
+    const newScale = Math.min(10, scale * 1.3);
+    translateX = cx - svgX * newScale;
+    translateY = cy - svgY * newScale;
+    scale = newScale;
+    updateTransform();
+  };
+
+  container.zoomOut = function() {
+    const rect = container.getBoundingClientRect();
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    const svgX = (cx - translateX) / scale;
+    const svgY = (cy - translateY) / scale;
+    const newScale = Math.max(0.15, scale / 1.3);
+    translateX = cx - svgX * newScale;
+    translateY = cy - svgY * newScale;
+    scale = newScale;
+    updateTransform();
+  };
+}
+
+function setupControlOverlay(container) {
+  // Check if overlay already exists
+  let overlay = container.querySelector('.zoom-controls-overlay');
+  if (overlay) return;
+
+  overlay = document.createElement('div');
+  overlay.className = 'zoom-controls-overlay';
+  overlay.innerHTML = `
+    <button class="zoom-btn zoom-in-btn" title="Zoom In"><i data-lucide="plus"></i></button>
+    <button class="zoom-btn zoom-out-btn" title="Zoom Out"><i data-lucide="minus"></i></button>
+    <button class="zoom-btn zoom-reset-btn" title="Reset Zoom"><i data-lucide="maximize"></i></button>
+  `;
+  container.appendChild(overlay);
+
+  // Attach button events
+  overlay.querySelector('.zoom-in-btn').addEventListener('click', () => container.zoomIn());
+  overlay.querySelector('.zoom-out-btn').addEventListener('click', () => container.zoomOut());
+  overlay.querySelector('.zoom-reset-btn').addEventListener('click', () => container.resetZoom());
+
+  // Render icons
+  if (window.lucide) {
+    lucide.createIcons({
+      attrs: {
+        class: 'lucide-icon'
+      },
+      nameAttr: 'data-lucide',
+      node: overlay
+    });
+  }
+}

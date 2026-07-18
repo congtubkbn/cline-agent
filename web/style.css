@@ -745,6 +745,8 @@ input[type=range]::-webkit-slider-thumb:hover {
   flex-grow: 1;
   overflow: hidden;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .scrollable-y {
@@ -1228,11 +1230,68 @@ input[type=range]::-webkit-slider-thumb:hover {
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 24px;
-  overflow: auto;
-  min-height: 400px;
+  overflow: hidden;
+  position: relative;
+  min-height: 450px;
   display: flex;
   justify-content: center;
   align-items: center;
+  cursor: grab;
+  user-select: none;
+}
+
+.mermaid-render-box:active {
+  cursor: grabbing;
+}
+
+.mermaid-render-box.is-dragging svg {
+  transition: none !important;
+}
+
+.mermaid-render-box svg {
+  max-width: none !important;
+  max-height: none !important;
+  transition: transform 0.1s cubic-bezier(0.1, 0.8, 0.3, 1);
+}
+
+/* Mermaid Zoom & Pan Overlay controls */
+.zoom-controls-overlay {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--bg-panel-solid);
+  border: 1px solid var(--border-color);
+  padding: 4px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-premium);
+  z-index: 10;
+}
+
+.zoom-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-main);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.zoom-btn:hover {
+  background: var(--fill-08);
+  color: var(--indigo);
+}
+
+.zoom-btn i {
+  width: 16px;
+  height: 16px;
 }
 
 /* Tab: JSON Inspector */
@@ -1493,8 +1552,48 @@ input[type=range]::-webkit-slider-thumb:hover {
   color: var(--cyan) !important;
 }
 
-/* Timeline filter utilities */
+/* Timeline filter & search utilities */
 .filtered-out {
   display: none !important;
+}
+
+.timeline-search-container {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--inset-10);
+  backdrop-filter: blur(8px);
+}
+
+.timeline-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.timeline-search-box i.search-icon {
+  position: absolute;
+  left: 12px;
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.timeline-search-box input {
+  width: 100%;
+  padding: 8px 12px 8px 34px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  outline: none;
+  transition: var(--transition-smooth);
+}
+
+.timeline-search-box input:focus {
+  border-color: var(--indigo);
+  box-shadow: 0 0 8px var(--indigo-glow);
 }
 

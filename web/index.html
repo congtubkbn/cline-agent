@@ -183,9 +183,17 @@
             <button class="btn-filter" data-filter="command">Commands</button>
           </div>
         </div>
-        <div class="panel-content scrollable-y">
-          <div class="timeline-container" id="timeline-list">
-            <!-- Dynamic items go here -->
+        <div class="panel-content">
+          <div class="timeline-search-container">
+            <div class="timeline-search-box">
+              <i data-lucide="search" class="search-icon"></i>
+              <input type="text" id="timeline-search" placeholder="Search timeline (e.g. tool, git)..." autocomplete="off">
+            </div>
+          </div>
+          <div class="timeline-container-scrollable scrollable-y" style="flex-grow: 1;">
+            <div class="timeline-container" id="timeline-list">
+              <!-- Dynamic items go here -->
+            </div>
           </div>
         </div>
       </section>
