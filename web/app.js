@@ -457,6 +457,17 @@ function formatDuration(ms) {
   return `${mins}m ${secs}s`;
 }
 
+// Format local time HH:MM:SS from epoch MS
+function formatLocalTime(ts) {
+  if (!ts) return '-';
+  const d = new Date(ts);
+  return [
+    String(d.getHours()).padStart(2, '0'),
+    String(d.getMinutes()).padStart(2, '0'),
+    String(d.getSeconds()).padStart(2, '0')
+  ].join(':');
+}
+
 // Format JSON text to wrap sidecar file paths in clickable elements
 function formatJsonWithLinks(jsonStr) {
   let html = jsonStr
@@ -551,7 +562,9 @@ function renderTimeline() {
     item.classList.add(itemKindClass);
 
     // Get time elapsed
+    // Get time elapsed
     const elapsed = idx === 0 ? '0s' : `+${Math.round((step.tsStart - flowData.turns[0].tsStart) / 1000)}s`;
+    const absoluteTime = step.tsStart ? new Date(step.tsStart).toLocaleString() : 'N/A';
 
     // Short description
     let desc = step.reasoning ? step.reasoning.preview : 'Processing...';
@@ -567,7 +580,7 @@ function renderTimeline() {
       <div class="timeline-info">
         <div class="timeline-meta">
           <span class="timeline-step">TURN ${step.index}</span>
-          <span class="timeline-time">${elapsed}</span>
+          <span class="timeline-time" title="Lúc: ${absoluteTime}">${elapsed}</span>
           ${step.request?.contextWindow ? `<span class="timeline-ctx" title="Context Window Usage">🪟 ${step.request.contextWindow.percent}%</span>` : ''}
         </div>
         <div class="timeline-title">${label}</div>
@@ -719,10 +732,12 @@ function updateActiveStepDetails() {
     const req = step.request || {};
     const dur = `+${Math.round((step.durationMs || 0) / 1000)}s`;
     const cw = req.contextWindow;
+    const timeStr = formatLocalTime(step.tsStart);
+    const fullDateStr = step.tsStart ? new Date(step.tsStart).toLocaleString() : 'N/A';
     simStepStats.innerHTML = `
       <span class="vital"><i data-lucide="clock" style="width:12px;height:12px;"></i> ${dur}</span>
       <span class="vital"><i data-lucide="arrow-right-left" style="width:12px;height:12px;"></i> ${req.tokensIn || 0}→${req.tokensOut || 0} tok</span>
-      <span class="vital" title="ts: ${step.tsStart}"><i data-lucide="hash" style="width:12px;height:12px;"></i> ${step.tsStart}</span>
+      <span class="vital" title="Bắt đầu lúc: ${fullDateStr}"><i data-lucide="calendar" style="width:12px;height:12px;"></i> ${timeStr} (${step.tsStart || '-'})</span>
       ${cw ? `<span class="vital" title="Context Window Usage">🪟 ${cw.used.toLocaleString()}/${cw.total} (${cw.percent}%)</span>` : ''}
     `;
     lucide.createIcons();
