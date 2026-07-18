@@ -49,8 +49,10 @@ export function groupTurns(events) {
     }
 
     if (!cur) continue; // skip pre-LLM events if 'task' wasn't present
-    cur.tsEnd = e.ts;
-    cur.durationMs = cur.tsEnd - cur.tsStart;
+    if (e.subtype !== 'user_feedback' && e.subtype !== 'resume_task' && e.subtype !== 'resume_completed_task') {
+      cur.tsEnd = e.ts;
+      cur.durationMs = cur.tsEnd - cur.tsStart;
+    }
     switch (e.subtype) {
       case 'reasoning':
         cur.reasoning = cur.reasoning

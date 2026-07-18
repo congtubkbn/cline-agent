@@ -62,3 +62,20 @@ test('captures pre-LLM checkpoint_created in Turn 0', () => {
   assert.equal(turns[0].request.text, '{"request":"Full prompt details"}');
 });
 
+test('ignores user response and resumption events when updating turn duration', () => {
+  const events = [
+    { subtype: 'task', text: 'new task prompt', ts: 1000 },
+    { subtype: 'api_req_started', text: 'api request', ts: 1200 },
+    { subtype: 'reasoning', text: 'thinking...', ts: 1300 },
+    { subtype: 'user_feedback', text: 'user typing...', ts: 5000 },
+    { subtype: 'resume_completed_task', text: '', ts: 6000 }
+  ];
+  const turns = groupTurns(events);
+  assert.equal(turns.length, 1);
+  assert.equal(turns[0].tsStart, 1000);
+  // tsEnd should freeze at 1300 (reasoning event), not 5000 or 6000
+  assert.equal(turns[0].tsEnd, 1300);
+  assert.equal(turns[0].durationMs, 300); // 1300 - 1000 (starting at the task event ts)
+});
+
+
