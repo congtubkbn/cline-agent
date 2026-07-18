@@ -222,18 +222,40 @@ if (watchMode) {
     }
   }
 
-  fs.watch(taskDir, { persistent: true }, (eventType, filename) => {
-    if (filename && !/^(ui_messages|api_conversation_history|task_metadata)\.json$/.test(filename)) return;
-    // A real file change supersedes any pending retry and resets its budget.
-    if (retryTimer) {
-      clearTimeout(retryTimer);
-      retryTimer = null;
+  let watcher = null;
+
+  function startWatch() {
+    if (watcher) {
+      try { watcher.close(); } catch (e) {}
     }
-    retryCount = 0;
-    if (debounceTimer) clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      debounceTimer = null;
-      reparse(`Change detected (${filename || 'log file'})`);
-    }, 500);
-  });
+    try {
+      watcher = fs.watch(taskDir, { persistent: true }, (eventType, filename) => {
+        if (filename && !/^(ui_messages|api_conversation_history|task_metadata)\.json$/.test(filename)) return;
+        // A real file change supersedes any pending retry and resets its budget.
+        if (retryTimer) {
+          clearTimeout(retryTimer);
+          retryTimer = null;
+        }
+        retryCount = 0;
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          debounceTimer = null;
+          reparse(`Change detected (${filename || 'log file'})`);
+        }, 500);
+      });
+
+      watcher.on('error', (err) => {
+        console.error(`[watch] Watcher error occurred:`, err.message);
+        // On Windows, locks or temp folder moves can break the watcher. Attempt restart.
+        console.log('[watch] Attempting to restart watcher in 3s...');
+        setTimeout(startWatch, 3000);
+      });
+    } catch (err) {
+      console.error(`[watch] Failed to initialize watcher:`, err.message);
+      console.log('[watch] Retrying watcher initialization in 5s...');
+      setTimeout(startWatch, 5000);
+    }
+  }
+
+  startWatch();
 }
