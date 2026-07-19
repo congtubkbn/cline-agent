@@ -464,6 +464,37 @@
       </div>
     </div>
 
+    <!-- Issue Preview Modal -->
+    <div class="modal" id="issue-preview-modal">
+      <div class="modal-content" style="max-width: 620px;">
+        <div class="modal-header">
+          <h3><i data-lucide="github"></i> Preview GitHub Issue URL</h3>
+          <button class="modal-close" id="btn-issue-modal-close"><i data-lucide="x"></i></button>
+        </div>
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Target URL to Open:</label>
+            <input type="text" id="issue-target-url" readonly style="background: var(--input-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 12px; outline: none; word-break: break-all;">
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Issue Title:</label>
+            <input type="text" id="issue-target-title" readonly style="background: var(--input-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-weight: 500; font-size: 13px; outline: none;">
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);">Markdown Content (Auto-copied to Clipboard):</label>
+            <pre id="issue-target-body" style="max-height: 180px; overflow-y: auto; background: var(--fill-02); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 11px; white-space: pre-wrap; word-break: break-word; margin: 0;"></pre>
+          </div>
+        </div>
+        <div class="modal-footer" style="padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--inset-10);">
+          <button class="btn btn-secondary" id="btn-issue-copy-only" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 14px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px;"><i data-lucide="copy"></i> Copy Markdown</button>
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-secondary" id="btn-issue-cancel" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); padding: 8px 14px; border-radius: 8px; cursor: pointer;">Cancel</button>
+            <button class="btn btn-primary" id="btn-issue-open-url" style="background: var(--indigo); border: 1px solid transparent; color: #fff; padding: 8px 16px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px;"><i data-lucide="external-link"></i> Open GitHub Issue</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Footer -->
     <footer class="app-footer">
       <p>Cline Agent Loop Analyzer &copy; 2026. Premium interface for loop visualization and simulation.</p>

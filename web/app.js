@@ -1456,7 +1456,7 @@ function renderAnalysisPanel() {
   if (window.lucide) lucide.createIcons();
 }
 
-// Helper to copy text to clipboard and trigger pre-filled GitHub Issue link safely
+// Helper to copy text to clipboard and trigger pre-filled GitHub Issue link safely via Preview Modal
 function openGitHubIssueSafely(title, body, labels) {
   // Always copy full Markdown body to clipboard
   const fullText = `# ${title}\n\n${body}`;
@@ -1484,8 +1484,47 @@ function openGitHubIssueSafely(title, body, labels) {
   // Bounded body snippet for URL parameter (browsers choke on > 2000 chars)
   const safeBody = body.length > 1200 ? body.slice(0, 1200) + '\n\n*(Full report copied to clipboard)*' : body;
   const issueUrl = `https://github.com/${rawRepo}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(safeBody)}&labels=${encodeURIComponent(labels)}`;
-  
-  window.open(issueUrl, '_blank');
+
+  // Populate preview modal elements
+  const modal = document.getElementById('issue-preview-modal');
+  const inputUrl = document.getElementById('issue-target-url');
+  const inputTitle = document.getElementById('issue-target-title');
+  const preBody = document.getElementById('issue-target-body');
+  const btnClose = document.getElementById('btn-issue-modal-close');
+  const btnCancel = document.getElementById('btn-issue-cancel');
+  const btnOpen = document.getElementById('btn-issue-open-url');
+  const btnCopy = document.getElementById('btn-issue-copy-only');
+
+  if (inputUrl) inputUrl.value = issueUrl;
+  if (inputTitle) inputTitle.value = title;
+  if (preBody) preBody.textContent = fullText;
+
+  if (modal) modal.classList.add('active');
+
+  const closeModal = () => modal && modal.classList.remove('active');
+
+  if (btnClose) btnClose.onclick = closeModal;
+  if (btnCancel) btnCancel.onclick = closeModal;
+  if (btnOpen) {
+    btnOpen.onclick = () => {
+      closeModal();
+      window.open(issueUrl, '_blank');
+    };
+  }
+  if (btnCopy) {
+    btnCopy.onclick = () => {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(fullText).then(() => {
+          btnCopy.innerHTML = '<i data-lucide="check"></i> Copied!';
+          if (window.lucide) lucide.createIcons();
+          setTimeout(() => {
+            btnCopy.innerHTML = '<i data-lucide="copy"></i> Copy Markdown';
+            if (window.lucide) lucide.createIcons();
+          }, 1500);
+        });
+      }
+    };
+  }
 }
 
 // Build and open GitHub Issue pre-fill URL for a specific Turn
