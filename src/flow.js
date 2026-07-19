@@ -2,7 +2,7 @@ import { groupTurns } from './turns.js';
 import { extractIntent } from './intent.js';
 import { makeTextPolicy } from './text-policy.js';
 import { toMermaid } from './diagram.js';
-import { detectError } from './errors.js';
+import { detectError, analyzeError } from './errors.js';
 
 // Cline appends a "# Context Window Usage" line to each request's
 // environment_details, e.g. "19,427 / 256K tokens used (8%)". It reflects the
@@ -26,7 +26,8 @@ export function buildFlow(run, { thresholdTokens = 200, perKind = {}, sink } = {
   const turns = rawTurns.map(t => {
     const reasoningText = t.reasoning?.text || '';
     const actions = t.actions.map((a, ai) => {
-      const hasErr = a.output ? detectError(a.output.text) : false;
+      const errInfo = a.output ? analyzeError(a.output.text) : null;
+      const hasErr = errInfo ? errInfo.hasError : false;
       return {
         kind: a.kind,
         ts: a.ts,
@@ -36,6 +37,12 @@ export function buildFlow(run, { thresholdTokens = 200, perKind = {}, sink } = {
         output: a.output ? {
           ts: a.output.ts,
           isError: hasErr,
+          errorDetails: hasErr ? {
+            severity: errInfo.severity,
+            category: errInfo.category,
+            code: errInfo.code,
+            summary: errInfo.summary
+          } : null,
           ...policy('output', `${t.index}_${ai}_out`, a.output.text)
         } : null
       };
