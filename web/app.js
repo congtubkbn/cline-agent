@@ -1398,10 +1398,12 @@ function initMermaid() {
   }
 }
 
-// Initialize Mermaid.js
+// Initialize Mermaid.js — use the active app theme so it always matches.
+// (applyTheme() calls mermaid.initialize() again whenever the user switches
+//  themes, but this initial call must also respect the saved preference.)
 mermaid.initialize({
   startOnLoad: false,
-  theme: 'dark',
+  theme: MERMAID_THEME[getActiveTheme()] || 'dark',
   securityLevel: 'loose'
 });
 
