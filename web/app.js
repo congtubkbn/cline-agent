@@ -469,7 +469,12 @@ async function fetchData() {
       renderTimeline();
       setupPlaybackSlider();
       setCurrentStep(0);
-      setTimeout(initMermaid, 200);
+      // Only render diagram tabs if they are currently visible — rendering
+      // into a hidden element (display:none) gives Mermaid no dimensions to
+      // work with, producing a blank or clipped SVG on first switch.
+      const _activeTabOnLoad = document.querySelector('.tab-btn.active')?.dataset.tab;
+      if (_activeTabOnLoad === 'mermaid') setTimeout(initMermaid, 200);
+      else if (_activeTabOnLoad === 'analysis') setTimeout(initFtaMermaid, 200);
     }
   } catch (error) {
     console.error('Error fetching flow data:', error);
