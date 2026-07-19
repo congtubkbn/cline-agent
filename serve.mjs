@@ -79,6 +79,42 @@ function requestShutdown(port) {
   });
 }
 
+// --- API helpers -----------------------------------------------------------
+
+// Task IDs are numeric epoch strings (e.g. "1784412206488") but allow
+// alphanumeric + dash/underscore up to 64 chars so custom names work too.
+// The strict regex blocks any path-traversal attempt ("../", encoded slashes…)
+function isValidTaskId(id) {
+  return typeof id === 'string' && /^[a-zA-Z0-9_\-]{1,64}$/.test(id);
+}
+
+function serveJson(s, payload) {
+  const body = JSON.stringify(payload);
+  s.writeHead(200, {
+    'content-type': 'application/json',
+    'access-control-allow-origin': '*',
+    'cache-control': 'no-store'
+  });
+  s.end(body);
+}
+
+function apiError(s, code, message) {
+  s.writeHead(code, { 'content-type': 'application/json' });
+  s.end(JSON.stringify({ error: message }));
+}
+
+// Resolve a route pattern like /api/tasks/:id/analysis against the request
+// pathname and return captured groups, or null if it doesn't match.
+function matchRoute(pathname, pattern) {
+  const re = new RegExp(
+    '^' + pattern.replace(/:([a-z]+)/g, '(?<$1>[^/]+)') + '$'
+  );
+  const m = pathname.match(re);
+  return m ? m.groups : null;
+}
+
+// ----------------------------------------------------------------------------
+
 function startServer() {
   const server = http.createServer((q, s) => {
     if (q.url === '/_status') {
@@ -101,6 +137,71 @@ function startServer() {
         return;
       }
     }
+
+    // --- REST API routes (checked before static-file catch-all) -------------
+    const pathname = q.url.split('?')[0];  // strip query string
+
+    // GET /api/tasks  →  full tasks.json catalog array
+    if (pathname === '/api/tasks' && q.method === 'GET') {
+      fs.readFile(path.join(root, 'tasks.json'), 'utf8', (err, data) => {
+        if (err) { serveJson(s, []); return; }
+        try { serveJson(s, JSON.parse(data)); }
+        catch { serveJson(s, []); }
+      });
+      return;
+    }
+
+    // GET /api/tasks/:id/meta  →  single catalog entry (parsedAt, healthScore…)
+    // Cheap alternative to loading flow_data.json just to check parsedAt.
+    let m;
+    if ((m = matchRoute(pathname, '/api/tasks/:id/meta')) && q.method === 'GET') {
+      const { id } = m;
+      if (!isValidTaskId(id)) { apiError(s, 400, 'Invalid task ID'); return; }
+      fs.readFile(path.join(root, 'tasks.json'), 'utf8', (err, data) => {
+        if (err) { apiError(s, 404, 'tasks.json not found'); return; }
+        try {
+          const list = JSON.parse(data);
+          const entry = list.find(t => t.taskId === id);
+          if (!entry) { apiError(s, 404, `Task ${id} not found`); return; }
+          serveJson(s, entry);
+        } catch { apiError(s, 500, 'Parse error'); }
+      });
+      return;
+    }
+
+    // GET /api/tasks/:id/analysis  →  tasks/:id/analysis.json (~22 KB)
+    // Use this instead of flow_data.json when you only need findings/FTA.
+    if ((m = matchRoute(pathname, '/api/tasks/:id/analysis')) && q.method === 'GET') {
+      const { id } = m;
+      if (!isValidTaskId(id)) { apiError(s, 400, 'Invalid task ID'); return; }
+      fs.readFile(path.join(root, 'tasks', id, 'analysis.json'), (err, data) => {
+        if (err) { apiError(s, 404, `analysis.json not found for task ${id}`); return; }
+        s.writeHead(200, {
+          'content-type': 'application/json',
+          'access-control-allow-origin': '*',
+          'cache-control': 'no-store'
+        });
+        s.end(data);
+      });
+      return;
+    }
+
+    // GET /api/tasks/:id/flow  →  tasks/:id/flow_data.json (full, large)
+    if ((m = matchRoute(pathname, '/api/tasks/:id/flow')) && q.method === 'GET') {
+      const { id } = m;
+      if (!isValidTaskId(id)) { apiError(s, 400, 'Invalid task ID'); return; }
+      fs.readFile(path.join(root, 'tasks', id, 'flow_data.json'), (err, data) => {
+        if (err) { apiError(s, 404, `flow_data.json not found for task ${id}`); return; }
+        s.writeHead(200, {
+          'content-type': 'application/json',
+          'access-control-allow-origin': '*',
+          'cache-control': 'no-store'
+        });
+        s.end(data);
+      });
+      return;
+    }
+    // -------------------------------------------------------------------------
 
     let f = path.join(root, q.url === '/' ? 'index.html' : decodeURIComponent(q.url.slice(1)));
     fs.readFile(f, (e, d) => {

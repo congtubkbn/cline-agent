@@ -403,13 +403,14 @@ async function loadTaskData(taskId, { preserveStep = false } = {}) {
 }
 
 // Look up the catalog's parsedAt for a task, used to detect new analysis data.
+// Uses /api/tasks/:id/meta (single entry, ~200 B) instead of the full tasks.json
+// so polling stays cheap even as the catalog grows.
 async function fetchParsedAt(taskId) {
   try {
-    const response = await fetch('./tasks.json', { cache: 'no-store' });
+    const response = await fetch(`./api/tasks/${encodeURIComponent(taskId)}/meta`, { cache: 'no-store' });
     if (!response.ok) return null;
-    const tasksList = await response.json();
-    const entry = tasksList.find(t => t.taskId === taskId);
-    return entry ? entry.parsedAt : null;
+    const entry = await response.json();
+    return entry.parsedAt ?? null;
   } catch (e) {
     return null;
   }
