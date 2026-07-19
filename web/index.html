@@ -83,6 +83,7 @@
           <button class="theme-btn" data-theme-val="light" title="Light" aria-label="Light theme"><i data-lucide="sun"></i></button>
           <button class="theme-btn" data-theme-val="claude" title="Claude cream" aria-label="Claude cream theme"><i data-lucide="sparkles"></i></button>
         </div>
+        <button class="theme-btn" id="btn-settings-open" title="Open Settings & Thresholds" style="border: 1px solid var(--border-color); background: var(--fill-03); border-radius: 10px; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); cursor: pointer; transition: var(--transition-smooth); margin-left: 8px;"><i data-lucide="settings"></i></button>
       </div>
       
       <!-- Prompt Overview -->
@@ -376,6 +377,48 @@
         </div>
         <div class="modal-body scrollable-y">
           <pre class="code-font" id="sidecar-file-content">Loading...</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settings-modal">
+      <div class="modal-content" style="max-width: 480px;">
+        <div class="modal-header">
+          <h3><i data-lucide="settings"></i> Settings & Thresholds</h3>
+          <button class="modal-close" id="btn-settings-close"><i data-lucide="x"></i></button>
+        </div>
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 20px;">
+          <div>
+            <h4 style="font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Time Duration (Seconds)</h4>
+            <div style="display: flex; gap: 16px;">
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+                <label for="set-time-warning" style="font-size: 12px; font-weight: 500; color: var(--text-main);">Warning Threshold</label>
+                <input type="number" id="set-time-warning" min="1" value="30" style="background: var(--input-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 14px; outline: none;">
+              </div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+                <label for="set-time-error" style="font-size: 12px; font-weight: 500; color: var(--text-main);">Error Threshold</label>
+                <input type="number" id="set-time-error" min="1" value="90" style="background: var(--input-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 14px; outline: none;">
+              </div>
+            </div>
+          </div>
+          <div>
+            <h4 style="font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Tokens In (Input Tokens)</h4>
+            <div style="display: flex; gap: 16px;">
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+                <label for="set-token-warning" style="font-size: 12px; font-weight: 500; color: var(--text-main);">Warning Threshold</label>
+                <input type="number" id="set-token-warning" min="1" step="1000" value="5000" style="background: var(--input-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 14px; outline: none;">
+              </div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+                <label for="set-token-error" style="font-size: 12px; font-weight: 500; color: var(--text-main);">Error Threshold</label>
+                <input type="number" id="set-token-error" min="1" step="1000" value="10000" style="background: var(--input-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 14px; outline: none;">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer" style="padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; background: var(--inset-10);">
+          <button class="btn btn-secondary" id="btn-settings-reset" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); padding: 8px 16px; border-radius: 8px; cursor: pointer;">Reset to Defaults</button>
+          <button class="btn btn-primary" id="btn-settings-save" style="background: var(--indigo); border: 1px solid transparent; color: #fff; padding: 8px 16px; border-radius: 8px; cursor: pointer;">Apply Settings</button>
         </div>
       </div>
     </div>

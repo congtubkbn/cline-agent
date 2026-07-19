@@ -15,6 +15,27 @@ let isRefreshing = false;
 let currentTimelineFilter = 'all';
 let currentSearchQuery = '';
 
+// Threshold Settings (default values)
+let thresholdSettings = {
+  timeWarning: 30,
+  timeError: 90,
+  tokenWarning: 5000,
+  tokenError: 10000
+};
+
+// Load thresholds from localStorage
+function loadThresholdSettings() {
+  try {
+    const saved = localStorage.getItem('analyzerThresholds');
+    if (saved) {
+      thresholdSettings = { ...thresholdSettings, ...JSON.parse(saved) };
+    }
+  } catch (e) {
+    console.error('Error loading thresholds:', e);
+  }
+}
+loadThresholdSettings();
+
 // DOM Elements
 const taskIdBadge = document.getElementById('task-id-badge');
 const modelBadge = document.getElementById('model-badge');
@@ -263,6 +284,73 @@ function setupEventListeners() {
 
   // Render FTA diagram button
   document.getElementById('btn-render-fta').addEventListener('click', initFtaMermaid);
+
+  // Settings Modal Events
+  const settingsModal = document.getElementById('settings-modal');
+  const btnSettingsOpen = document.getElementById('btn-settings-open');
+  const btnSettingsClose = document.getElementById('btn-settings-close');
+  const btnSettingsSave = document.getElementById('btn-settings-save');
+  const btnSettingsReset = document.getElementById('btn-settings-reset');
+
+  const setTimeWarning = document.getElementById('set-time-warning');
+  const setTimeError = document.getElementById('set-time-error');
+  const setTokenWarning = document.getElementById('set-token-warning');
+  const setTokenError = document.getElementById('set-token-error');
+
+  if (btnSettingsOpen && settingsModal) {
+    btnSettingsOpen.addEventListener('click', () => {
+      // Load current threshold values into inputs
+      setTimeWarning.value = thresholdSettings.timeWarning;
+      setTimeError.value = thresholdSettings.timeError;
+      setTokenWarning.value = thresholdSettings.tokenWarning;
+      setTokenError.value = thresholdSettings.tokenError;
+      
+      settingsModal.classList.add('active');
+    });
+  }
+
+  if (btnSettingsClose && settingsModal) {
+    btnSettingsClose.addEventListener('click', () => {
+      settingsModal.classList.remove('active');
+    });
+  }
+
+  window.addEventListener('click', (e) => {
+    if (e.target === settingsModal) {
+      settingsModal.classList.remove('active');
+    }
+  });
+
+  if (btnSettingsSave && settingsModal) {
+    btnSettingsSave.addEventListener('click', () => {
+      thresholdSettings.timeWarning = parseInt(setTimeWarning.value, 10) || 30;
+      thresholdSettings.timeError = parseInt(setTimeError.value, 10) || 90;
+      thresholdSettings.tokenWarning = parseInt(setTokenWarning.value, 10) || 5000;
+      thresholdSettings.tokenError = parseInt(setTokenError.value, 10) || 10000;
+
+      try {
+        localStorage.setItem('analyzerThresholds', JSON.stringify(thresholdSettings));
+      } catch (e) {
+        console.error('Error saving thresholds:', e);
+      }
+
+      settingsModal.classList.remove('active');
+      
+      // Re-render timeline to update colors/indicators and apply filters
+      if (flowData) {
+        renderTimeline();
+      }
+    });
+  }
+
+  if (btnSettingsReset) {
+    btnSettingsReset.addEventListener('click', () => {
+      setTimeWarning.value = 30;
+      setTimeError.value = 90;
+      setTokenWarning.value = 5000;
+      setTokenError.value = 10000;
+    });
+  }
 }
 
 // Fetch flow_data.json for one task and (re)render every panel that depends on it.
@@ -618,6 +706,10 @@ function renderTimeline() {
     return cleaned.length > maxLen ? cleaned.slice(0, maxLen) : cleaned;
   };
 
+  let warningCount = 0;
+  let errorCount = 0;
+  const totalCount = flowData.turns.length;
+
   timelineList.innerHTML = '';
   flowData.turns.forEach((step, idx) => {
     const item = document.createElement('div');
@@ -651,21 +743,27 @@ function renderTimeline() {
     const tokensIn = (step.request && step.request.tokensIn) || 0;
 
     let timeLevel = 'safe';
-    if (durationSec >= 30 && durationSec <= 90) {
+    if (durationSec >= thresholdSettings.timeWarning && durationSec <= thresholdSettings.timeError) {
       timeLevel = 'warning';
-    } else if (durationSec > 90) {
+    } else if (durationSec > thresholdSettings.timeError) {
       timeLevel = 'error';
     }
 
     let tokenLevel = 'safe';
-    if (tokensIn >= 50000 && tokensIn <= 120000) {
+    if (tokensIn >= thresholdSettings.tokenWarning && tokensIn <= thresholdSettings.tokenError) {
       tokenLevel = 'warning';
-    } else if (tokensIn > 120000) {
+    } else if (tokensIn > thresholdSettings.tokenError) {
       tokenLevel = 'error';
     }
 
     item.dataset.timeLevel = timeLevel;
     item.dataset.tokenLevel = tokenLevel;
+
+    // Count warnings and errors matching filter criteria
+    const isErr = (timeLevel === 'error' || tokenLevel === 'error' || step.hasError || (step.errors && step.errors.length > 0));
+    const isWarn = (timeLevel === 'warning' || tokenLevel === 'warning');
+    if (isErr) errorCount++;
+    if (isWarn) warningCount++;
 
     const timeStatusClass = `status-${timeLevel}`;
     const tokenStatusClass = `status-${tokenLevel}`;
@@ -712,6 +810,15 @@ function renderTimeline() {
 
     timelineList.appendChild(item);
   });
+
+  // Update timeline filter button counts
+  const btnAll = document.querySelector('.btn-filter[data-filter="all"]');
+  const btnWarning = document.querySelector('.btn-filter[data-filter="warning"]');
+  const btnError = document.querySelector('.btn-filter[data-filter="error"]');
+
+  if (btnAll) btnAll.textContent = `All (${totalCount})`;
+  if (btnWarning) btnWarning.innerHTML = `Warning (${warningCount}) ⚠️`;
+  if (btnError) btnError.innerHTML = `Error (${errorCount}) ❌`;
 
   applyTimelineFilter();
   lucide.createIcons();
