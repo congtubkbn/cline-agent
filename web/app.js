@@ -1453,6 +1453,21 @@ function renderAnalysisPanel() {
   if (window.lucide) lucide.createIcons();
 }
 
+// Helper to copy text to clipboard and trigger pre-filled GitHub Issue link safely
+function openGitHubIssueSafely(title, body, labels) {
+  // Always copy full Markdown body to clipboard for easy pasting if URL is truncated or user hits 404/login wall
+  const fullText = `# ${title}\n\n${body}`;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(fullText).catch(() => {});
+  }
+
+  // Bounded body snippet for URL parameter (browsers choke on > 2000 chars)
+  const safeBody = body.length > 1200 ? body.slice(0, 1200) + '\n\n*(Full report copied to clipboard)*' : body;
+  const issueUrl = `https://github.com/congtubkbn/cline-agent/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(safeBody)}&labels=${encodeURIComponent(labels)}`;
+  
+  window.open(issueUrl, '_blank');
+}
+
 // Build and open GitHub Issue pre-fill URL for a specific Turn
 function createGitHubIssueForTurn(stepIndex) {
   if (!flowData || stepIndex == null || stepIndex < 0 || stepIndex >= flowData.turns.length) return;
@@ -1462,13 +1477,12 @@ function createGitHubIssueForTurn(stepIndex) {
   const baseUrl = window.location.origin + window.location.pathname;
   const deepLink = `${baseUrl}#turn-${stepIndex}`;
 
-  const reqText = turn.request?.text?.preview || 'N/A';
   const tokensIn = turn.request?.tokensIn || 0;
   const tokensOut = turn.request?.tokensOut || 0;
   const actionSummary = turn.actions && turn.actions.length > 0 
     ? turn.actions.map(a => `${a.kind}: ${JSON.stringify(a.what)}`).join('\n')
     : 'No action recorded';
-  const reasoning = turn.reasoning?.preview || 'No reasoning text recorded';
+  const reasoning = (turn.reasoning?.preview || 'No reasoning text recorded').slice(0, 300);
 
   const title = `[Agent Fault]: Issue observed at Turn ${stepIndex} (Task: ${taskId})`;
   const body = `## ⚠️ [BUG/FAULT]: Agent Execution Issue at Turn ${stepIndex}
@@ -1515,8 +1529,7 @@ ${actionSummary}
 ---
 *Reported via Cline Agent Loop Analyzer*`;
 
-  const issueUrl = `https://github.com/congtubkbn/cline-agent/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&labels=bug,trace-fault`;
-  window.open(issueUrl, '_blank');
+  openGitHubIssueSafely(title, body, 'bug,trace-fault');
 }
 
 // Build and open GitHub Issue pre-fill URL for a specific Finding
@@ -1567,8 +1580,7 @@ ${f.detail ? `**Detail:** ${f.detail}\n` : ''}
 ---
 *Reported via Cline Agent Loop Analyzer*`;
 
-  const issueUrl = `https://github.com/congtubkbn/cline-agent/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&labels=${encodeURIComponent('bug,' + f.category)}`;
-  window.open(issueUrl, '_blank');
+  openGitHubIssueSafely(title, body, 'bug,' + f.category);
 }
 
 window.jumpToTurn = jumpToTurn;
