@@ -549,6 +549,46 @@ function getIconForStep(step) {
 function renderTimeline() {
   if (!flowData) return;
 
+  const getBasename = (p) => {
+    if (!p) return '';
+    return p.split(/[/\\]/).pop();
+  };
+
+  const getToolLabel = (action) => {
+    const tool = action.what?.tool;
+    const filePath = action.what?.path;
+    const baseName = getBasename(filePath);
+    
+    switch (tool) {
+      case 'readFile':
+      case 'read_file':
+        return baseName ? `Read: ${baseName}` : 'Read File';
+      case 'writeFile':
+      case 'write_to_file':
+        return baseName ? `Write: ${baseName}` : 'Write File';
+      case 'replace_file_content':
+        return baseName ? `Edit: ${baseName}` : 'Edit File';
+      case 'grep_search':
+        return action.what?.query ? `Search: "${action.what.query}"` : 'Search Code';
+      case 'list_dir':
+        return `List Dir: ${baseName || '.'}`;
+      case 'useSkill':
+        return `Skill: ${action.what?.path || 'useSkill'}`;
+      case 'ask_question':
+        return 'Ask User';
+      default:
+        return `Tool: ${tool || 'Action'}`;
+    }
+  };
+
+  const getCommandLabel = (action) => {
+    const cmd = action.what?.command || '';
+    if (!cmd) return 'Run Command';
+    const trimmed = cmd.trim();
+    const firstLine = trimmed.split('\n')[0].trim();
+    return `Command: ${firstLine.length > 25 ? firstLine.slice(0, 22) + '...' : firstLine}`;
+  };
+
   timelineList.innerHTML = '';
   flowData.turns.forEach((step, idx) => {
     const item = document.createElement('div');
@@ -557,7 +597,7 @@ function renderTimeline() {
     
     // Determine classes and type
     let itemKindClass = 'item-reasoning';
-    let label = 'Reasoning';
+    let label = 'Reasoning / Chat';
     if (idx === 0) {
       itemKindClass = 'item-task';
       label = 'Start Task';
@@ -565,14 +605,14 @@ function renderTimeline() {
       const action = step.actions[0];
       if (action.kind === 'command') {
         itemKindClass = 'item-command';
-        label = 'Run Command';
+        label = getCommandLabel(action);
       } else {
         itemKindClass = 'item-tool';
-        label = `Tool: ${action.what.tool || 'Action'}`;
+        label = getToolLabel(action);
       }
     } else if (step.checkpoint) {
       itemKindClass = 'item-checkpoint';
-      label = 'Checkpoint';
+      label = 'Save Checkpoint';
     }
 
     item.classList.add(itemKindClass);
