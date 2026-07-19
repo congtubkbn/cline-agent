@@ -24,7 +24,8 @@ let thresholdSettings = {
   // Error source toggles — which sources contribute to Warning/Error counts
   enableTimeThreshold: true,
   enableTokenThreshold: true,
-  enableParserErrors: true
+  enableParserErrors: true,
+  githubRepo: '' // Default empty
 };
 
 // Load thresholds from localStorage
@@ -317,6 +318,7 @@ function setupEventListeners() {
   const setEnableTime = document.getElementById('set-enable-time');
   const setEnableToken = document.getElementById('set-enable-token');
   const setEnableErrors = document.getElementById('set-enable-errors');
+  const setGithubRepo = document.getElementById('set-github-repo');
 
   // Helper: grey-out threshold inputs when the source toggle is OFF
   function syncThresholdDisabledState() {
@@ -338,10 +340,11 @@ function setupEventListeners() {
       setTimeError.value = thresholdSettings.timeError;
       setTokenWarning.value = thresholdSettings.tokenWarning;
       setTokenError.value = thresholdSettings.tokenError;
-      // Load toggle states
+      // Load toggle states and github repo
       if (setEnableTime)   setEnableTime.checked   = thresholdSettings.enableTimeThreshold;
       if (setEnableToken)  setEnableToken.checked  = thresholdSettings.enableTokenThreshold;
       if (setEnableErrors) setEnableErrors.checked = thresholdSettings.enableParserErrors;
+      if (setGithubRepo)   setGithubRepo.value     = thresholdSettings.githubRepo || '';
       syncThresholdDisabledState();
       settingsModal.classList.add('active');
     });
@@ -365,10 +368,11 @@ function setupEventListeners() {
       thresholdSettings.timeError = parseInt(setTimeError.value, 10) || 90;
       thresholdSettings.tokenWarning = parseInt(setTokenWarning.value, 10) || 5000;
       thresholdSettings.tokenError = parseInt(setTokenError.value, 10) || 10000;
-      // Save toggle states
+      // Save toggle states and github repo
       thresholdSettings.enableTimeThreshold  = setEnableTime   ? setEnableTime.checked   : true;
       thresholdSettings.enableTokenThreshold = setEnableToken  ? setEnableToken.checked  : true;
       thresholdSettings.enableParserErrors   = setEnableErrors ? setEnableErrors.checked : true;
+      thresholdSettings.githubRepo           = setGithubRepo   ? setGithubRepo.value.trim() : '';
 
       try {
         localStorage.setItem('analyzerThresholds', JSON.stringify(thresholdSettings));
@@ -378,10 +382,8 @@ function setupEventListeners() {
 
       settingsModal.classList.remove('active');
       
-      // Re-render timeline to update colors/indicators and apply filters
-      if (flowData) {
-        renderTimeline();
-      }
+      // Re-apply timeline filters since threshold values changed
+      applyTimelineFilter();
     });
   }
 
@@ -394,6 +396,7 @@ function setupEventListeners() {
       if (setEnableTime)   setEnableTime.checked   = true;
       if (setEnableToken)  setEnableToken.checked  = true;
       if (setEnableErrors) setEnableErrors.checked = true;
+      if (setGithubRepo)   setGithubRepo.value     = '';
       syncThresholdDisabledState();
     });
   }
@@ -1455,15 +1458,26 @@ function renderAnalysisPanel() {
 
 // Helper to copy text to clipboard and trigger pre-filled GitHub Issue link safely
 function openGitHubIssueSafely(title, body, labels) {
-  // Always copy full Markdown body to clipboard for easy pasting if URL is truncated or user hits 404/login wall
+  // Always copy full Markdown body to clipboard
   const fullText = `# ${title}\n\n${body}`;
   if (navigator.clipboard) {
     navigator.clipboard.writeText(fullText).catch(() => {});
   }
 
+  let rawRepo = (thresholdSettings.githubRepo || '').trim();
+  // Clean up full URL input if user pasted https://github.com/owner/repo
+  rawRepo = rawRepo.replace(/^https?:\/\/github\.com\//i, '').replace(/\/+$/, '');
+
+  if (!rawRepo) {
+    alert('Full Markdown report copied to Clipboard!\n\nTarget GitHub Repository is currently unconfigured in Settings. Please open Settings to set your Target Repository (owner/repo).');
+    const settingsModal = document.getElementById('settings-modal');
+    if (settingsModal) settingsModal.classList.add('active');
+    return;
+  }
+
   // Bounded body snippet for URL parameter (browsers choke on > 2000 chars)
   const safeBody = body.length > 1200 ? body.slice(0, 1200) + '\n\n*(Full report copied to clipboard)*' : body;
-  const issueUrl = `https://github.com/congtubkbn/cline-agent/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(safeBody)}&labels=${encodeURIComponent(labels)}`;
+  const issueUrl = `https://github.com/${rawRepo}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(safeBody)}&labels=${encodeURIComponent(labels)}`;
   
   window.open(issueUrl, '_blank');
 }
