@@ -577,9 +577,9 @@ function renderTimeline() {
 
     item.classList.add(itemKindClass);
 
-    // Get time elapsed
-    // Get time elapsed
+    // Get time elapsed and turn duration
     const elapsed = idx === 0 ? '0s' : `+${Math.round((step.tsStart - flowData.turns[0].tsStart) / 1000)}s`;
+    const turnDuration = idx === 0 ? '' : formatDuration(step.durationMs);
     const absoluteTime = step.tsStart ? new Date(step.tsStart).toLocaleString() : 'N/A';
 
     // Short description
@@ -595,9 +595,14 @@ function renderTimeline() {
       </div>
       <div class="timeline-info">
         <div class="timeline-meta">
-          <span class="timeline-step">TURN ${step.index}</span>
-          <span class="timeline-time" title="Lúc: ${absoluteTime}">${elapsed}</span>
-          ${step.request?.contextWindow ? `<span class="timeline-ctx" title="Context Window Usage">🪟 ${step.request.contextWindow.percent}%</span>` : ''}
+          <div class="timeline-left">
+            <span class="timeline-step">TURN ${step.index}</span>
+            ${turnDuration ? `<span class="timeline-duration" title="Thời gian chạy của Turn này">(${turnDuration})</span>` : ''}
+          </div>
+          <div class="timeline-right">
+            <span class="timeline-time" title="Tổng thời gian đã trôi qua: Lúc ${absoluteTime}">${elapsed}</span>
+            ${step.request?.contextWindow ? `<span class="timeline-ctx" title="Context Window Usage">🪟 ${step.request.contextWindow.percent}%</span>` : ''}
+          </div>
         </div>
         <div class="timeline-title">${label}</div>
         <div class="timeline-desc">${desc}</div>

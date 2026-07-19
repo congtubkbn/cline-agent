@@ -886,6 +886,19 @@ input[type=range]::-webkit-slider-thumb:hover {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
+}
+
+.timeline-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timeline-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .timeline-step {
@@ -893,6 +906,13 @@ input[type=range]::-webkit-slider-thumb:hover {
   font-family: var(--font-mono);
   font-weight: 700;
   color: var(--text-muted);
+}
+
+.timeline-duration {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--cyan);
+  font-weight: 600;
 }
 
 .timeline-time {
@@ -903,7 +923,6 @@ input[type=range]::-webkit-slider-thumb:hover {
 .timeline-ctx {
   font-size: 10px;
   color: var(--cyan);
-  margin-left: auto;
   white-space: nowrap;
 }
 

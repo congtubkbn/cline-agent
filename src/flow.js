@@ -9,7 +9,7 @@ import { detectError } from './errors.js';
 // context size entering this turn. Parse it from the raw request text.
 export function parseContextWindow(reqText) {
   if (!reqText) return null;
-  const m = reqText.match(/#\s*Context Window Usage\s*\r?\n\s*([\d,]+)\s*\/\s*([\d.]+\s*[KM]?)\s*tokens used\s*\(([\d.]+)\s*%\)/i);
+  const m = reqText.match(/#\s*Context Window Usage\s*\r?\n\s*([\d,]+)\s*\/\s*([\d.,]+\s*[KM]?)\s*tokens used\s*\(([\d.]+)\s*%\)/i);
   if (!m) return null;
   return {
     used: parseInt(m[1].replace(/,/g, ''), 10),

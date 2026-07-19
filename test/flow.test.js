@@ -1,7 +1,29 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { load } from '../src/loader.js';
-import { buildFlow } from '../src/flow.js';
+import { buildFlow, parseContextWindow } from '../src/flow.js';
+
+test('parseContextWindow parses various token formats including commas', () => {
+  const cases = [
+    {
+      input: '# Context Window Usage\n0 / 256K tokens used (0%)',
+      expected: { used: 0, total: '256K', percent: 0, raw: '0 / 256K tokens used (0%)' }
+    },
+    {
+      input: '# Context Window Usage\n16,792 / 256K tokens used (7%)',
+      expected: { used: 16792, total: '256K', percent: 7, raw: '16,792 / 256K tokens used (7%)' }
+    },
+    {
+      input: '# Context Window Usage\n31,708 / 1,048.576K tokens used (3%)',
+      expected: { used: 31708, total: '1,048.576K', percent: 3, raw: '31,708 / 1,048.576K tokens used (3%)' }
+    }
+  ];
+
+  for (const c of cases) {
+    const res = parseContextWindow(c.input);
+    assert.deepEqual(res, c.expected);
+  }
+});
 
 test('buildFlow produces totals, turns with intents, completion', () => {
   const run = load('cline-log/1782757522666');
