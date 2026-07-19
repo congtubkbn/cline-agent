@@ -1483,7 +1483,8 @@ function openGitHubIssueSafely(title, body, labels) {
 
   // Bounded body snippet for URL parameter (browsers choke on > 2000 chars)
   const safeBody = body.length > 1200 ? body.slice(0, 1200) + '\n\n*(Full report copied to clipboard)*' : body;
-  const issueUrl = `https://github.com/${rawRepo}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(safeBody)}&labels=${encodeURIComponent(labels)}`;
+  // Omit labels query param because non-existent labels in target repo trigger GitHub 404
+  const issueUrl = `https://github.com/${rawRepo}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(safeBody)}`;
 
   // Populate preview modal elements
   const modal = document.getElementById('issue-preview-modal');
