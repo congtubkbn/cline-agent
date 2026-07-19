@@ -873,11 +873,21 @@ function renderTimeline() {
       desc = 'Chatting...';
     }
 
+    let errBadgeHTML = '';
+    const errAction = step.actions && step.actions.find(a => a.output && (a.output.isError || a.output.errorDetails));
+    if (errAction && errAction.output) {
+      const ed = errAction.output.errorDetails || {};
+      const sev = (ed.severity || (step.hasError ? 'critical' : 'major')).toUpperCase();
+      const badgeColor = sev === 'CRITICAL' ? 'var(--rose, #f43f5e)' : 'var(--amber, #f59e0b)';
+      const badgeBg = sev === 'CRITICAL' ? 'rgba(244, 63, 94, 0.15)' : 'rgba(245, 158, 11, 0.15)';
+      errBadgeHTML = `<span class="badge" style="background: ${badgeBg}; color: ${badgeColor}; border: 1px solid ${badgeColor}; font-size: 9px; padding: 1px 4px; margin-left: 6px; font-weight: 700;">${sev}</span>`;
+    }
+
     item.innerHTML = `
       <div class="timeline-info">
         <div class="timeline-meta">
           <div class="timeline-left">
-            <span class="timeline-step">TURN ${step.index}</span>
+            <span class="timeline-step">TURN ${step.index}</span>${errBadgeHTML}
             ${turnDuration ? `<span class="timeline-duration ${timeStatusClass}" title="Thời gian chạy: ${durationSec}s (${timeLevel.toUpperCase()})">(${turnDuration})</span>` : ''}
           </div>
           <div class="timeline-right">
@@ -1097,14 +1107,37 @@ function updateActiveStepDetails() {
     let outputHTML = '';
     step.actions.forEach((a, ai) => {
       if (a.output) {
+        let errRibbon = '';
+        if (a.output.isError || a.output.errorDetails) {
+          const ed = a.output.errorDetails || {};
+          const sev = (ed.severity || 'major').toUpperCase();
+          const cat = (ed.category || 'execution-failed').toUpperCase();
+          const summary = ed.summary || 'Error detected in tool output';
+          const isCritical = sev === 'CRITICAL';
+          const ribbonBorderColor = isCritical ? 'var(--rose, #f43f5e)' : 'var(--amber, #f59e0b)';
+          const ribbonBgColor = isCritical ? 'rgba(244, 63, 94, 0.12)' : 'rgba(245, 158, 11, 0.12)';
+
+          errRibbon = `
+            <div class="error-details-ribbon" style="margin-bottom: 10px; padding: 8px 12px; border-radius: 6px; background: ${ribbonBgColor}; border: 1px solid ${ribbonBorderColor};">
+              <div style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 12px; color: ${ribbonBorderColor};">
+                <i data-lucide="alert-triangle" style="width:14px;height:14px;"></i>
+                <span>${sev} ERROR · ${cat}</span>
+              </div>
+              <div style="font-size: 11px; margin-top: 4px; color: var(--text-main); font-family: var(--font-mono); word-break: break-all;">${escapeHtml(summary)}</div>
+            </div>
+          `;
+        }
+
         outputHTML += `
-          <div class="output-item-box">
+          <div class="output-item-box ${a.output.isError ? 'has-error' : ''}">
+            ${errRibbon}
             ${renderTextBlockHTML(a.output, 'output', `${step.index}_${ai}_out`)}
           </div>
         `;
       }
     });
     simOutput.innerHTML = outputHTML || '<span class="text-muted">No output results returned during this Turn.</span>';
+    if (window.lucide) lucide.createIcons();
   } else {
     // If it's the last turn or task completion
     if (flowData.completion && flowData.completion.preview && currentStepIndex === flowData.turns.length - 1) {
