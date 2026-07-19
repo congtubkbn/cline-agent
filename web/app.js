@@ -721,15 +721,27 @@ function applyTimelineFilter() {
     let matchesSearch = true;
     if (currentSearchQuery) {
       matchesSearch = false;
+      const q = currentSearchQuery.toLowerCase();
       
+      // Search in visible card text
+      if (item.textContent.toLowerCase().includes(q)) {
+        matchesSearch = true;
+      }
       // Search in Turn Index
-      if (String(step.index).includes(currentSearchQuery)) {
+      else if (String(step.index).includes(q)) {
+        matchesSearch = true;
+      }
+      // Search in Request Text (contains tool output and prompt)
+      else if (step.request && step.request.text && (
+        (step.request.text.preview && step.request.text.preview.toLowerCase().includes(q)) ||
+        (step.request.text.summary && step.request.text.summary.toLowerCase().includes(q))
+      )) {
         matchesSearch = true;
       }
       // Search in Reasoning Preview/Text
       else if (step.reasoning && (
-        (step.reasoning.preview && step.reasoning.preview.toLowerCase().includes(currentSearchQuery)) ||
-        (step.reasoning.text && step.reasoning.text.toLowerCase().includes(currentSearchQuery))
+        (step.reasoning.preview && step.reasoning.preview.toLowerCase().includes(q)) ||
+        (step.reasoning.text && step.reasoning.text.toLowerCase().includes(q))
       )) {
         matchesSearch = true;
       }
@@ -739,9 +751,9 @@ function applyTimelineFilter() {
           const whatStr = act.kind === 'tool' 
             ? `${act.what.tool || ''} ${act.what.path || ''}` 
             : (act.what.command || '');
-          if (whatStr.toLowerCase().includes(currentSearchQuery) || 
-              (act.why && act.why.toLowerCase().includes(currentSearchQuery)) ||
-              (act.text && act.text.preview && act.text.preview.toLowerCase().includes(currentSearchQuery))) {
+          if (whatStr.toLowerCase().includes(q) || 
+              (act.why && act.why.toLowerCase().includes(q)) ||
+              (act.text && act.text.preview && act.text.preview.toLowerCase().includes(q))) {
             matchesSearch = true;
             break;
           }
@@ -750,7 +762,7 @@ function applyTimelineFilter() {
       // Search in general say texts
       else if (step.texts && step.texts.length > 0) {
         for (const x of step.texts) {
-          if (x.text && x.text.toLowerCase().includes(currentSearchQuery)) {
+          if (x.text && x.text.toLowerCase().includes(q)) {
             matchesSearch = true;
             break;
           }
