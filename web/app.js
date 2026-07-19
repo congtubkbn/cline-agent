@@ -187,16 +187,7 @@ function setupEventListeners() {
     });
   }
 
-  // Timeline filters
-  const filterButtons = document.querySelectorAll('.btn-filter');
-  filterButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      filterButtons.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentTimelineFilter = btn.dataset.filter || 'all';
-      applyTimelineFilter();
-    });
-  });
+
 
   // Timeline search
   const timelineSearch = document.getElementById('timeline-search');
@@ -704,20 +695,7 @@ function applyTimelineFilter() {
     const step = flowData.turns[idx];
     if (!step) return;
 
-    const isTool = item.classList.contains('item-tool');
-    const isCommand = item.classList.contains('item-command');
-    
-    // 1. Check type filter
-    let matchesType = false;
-    if (currentTimelineFilter === 'all') {
-      matchesType = true;
-    } else if (currentTimelineFilter === 'tool' && isTool) {
-      matchesType = true;
-    } else if (currentTimelineFilter === 'command' && isCommand) {
-      matchesType = true;
-    }
-    
-    // 2. Check search query
+    // Check search query
     let matchesSearch = true;
     if (currentSearchQuery) {
       matchesSearch = false;
@@ -770,8 +748,7 @@ function applyTimelineFilter() {
       }
     }
     
-    const visible = matchesType && matchesSearch;
-    if (visible) {
+    if (matchesSearch) {
       item.classList.remove('filtered-out');
     } else {
       item.classList.add('filtered-out');
