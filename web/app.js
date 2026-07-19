@@ -1465,8 +1465,14 @@ function openGitHubIssueSafely(title, body, labels) {
   }
 
   let rawRepo = (thresholdSettings.githubRepo || '').trim();
-  // Clean up full URL input if user pasted https://github.com/owner/repo
+  // Clean up full URL input to strictly extract owner/repo pair only
   rawRepo = rawRepo.replace(/^https?:\/\/github\.com\//i, '').replace(/\/+$/, '');
+  const parts = rawRepo.split('/').filter(Boolean);
+  if (parts.length >= 2) {
+    rawRepo = `${parts[0]}/${parts[1]}`;
+  } else {
+    rawRepo = parts[0] || '';
+  }
 
   if (!rawRepo) {
     alert('Full Markdown report copied to Clipboard!\n\nTarget GitHub Repository is currently unconfigured in Settings. Please open Settings to set your Target Repository (owner/repo).');
