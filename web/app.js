@@ -98,7 +98,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if (ftaContainer) enablePanAndZoom(ftaContainer);
   
   const mmdContainer = document.querySelector('#tab-mermaid .mermaid-render-box');
-  if (mmdContainer) enablePanAndZoom(mmdContainer);
+  // Listen to hash changes (browser back/forward or manual hash edits)
+  window.addEventListener('hashchange', () => {
+    const t = getTurnFromHash();
+    if (t !== null && flowData && t !== currentStepIndex) {
+      setCurrentStep(Math.max(0, Math.min(t, flowData.turns.length - 1)));
+    }
+  });
 });
 
 // ===== Theme switching =====
@@ -385,6 +391,22 @@ function setupEventListeners() {
   }
 }
 
+// Parse turn index from URL hash (e.g. #turn-5 or #5)
+function getTurnFromHash() {
+  const hash = window.location.hash;
+  if (!hash) return null;
+  const m = hash.match(/^#?(?:turn-)?(\d+)$/i);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+// Sync current step to URL hash without adding excessive browser history entries
+function updateUrlHash(index) {
+  const targetHash = `#turn-${index}`;
+  if (window.location.hash !== targetHash) {
+    history.replaceState(null, '', targetHash);
+  }
+}
+
 // Fetch flow_data.json for one task and (re)render every panel that depends on it.
 // preserveStep keeps the current playback position (clamped to the new turn
 // count) instead of jumping back to turn 0 — used by auto-refresh so a
@@ -398,7 +420,16 @@ async function loadTaskData(taskId, { preserveStep = false } = {}) {
   renderAnalysisPanel();
   renderTimeline();
   setupPlaybackSlider();
-  setCurrentStep(preserveStep ? Math.max(0, Math.min(prevIndex, flowData.turns.length - 1)) : 0);
+
+  const hashTurn = getTurnFromHash();
+  let initialTurn = 0;
+  if (preserveStep) {
+    initialTurn = Math.max(0, Math.min(prevIndex, flowData.turns.length - 1));
+  } else if (hashTurn !== null) {
+    initialTurn = Math.max(0, Math.min(hashTurn, flowData.turns.length - 1));
+  }
+
+  setCurrentStep(initialTurn);
   setTimeout(initMermaid, 200);
 }
 
@@ -962,6 +993,8 @@ function setCurrentStep(idx) {
   currentStepIndex = idx;
   playbackSlider.value = idx;
   playbackCurrentStepLabel.textContent = `Turn ${idx}`;
+
+  updateUrlHash(idx);
 
   // Update active timeline item styling
   const items = timelineList.querySelectorAll('.timeline-item');
