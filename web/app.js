@@ -41,6 +41,52 @@ function loadThresholdSettings() {
 }
 loadThresholdSettings();
 
+// Client-side Error Analyzer fallback (evaluates errorDetails on-the-fly for legacy flow_data.json logs)
+function analyzeOutputError(outputText) {
+  if (!outputText || typeof outputText !== 'string') return null;
+
+  // Negative patterns to filter out false positives
+  const isFalsePositive = /no (merge )?conflicts?|0 errors?,?\s*0 warnings?|0 (failed|failures)|syntax ok|build (succeeded|successful)|tests? passed/i.test(outputText);
+  if (isFalsePositive) return null;
+
+  if (/Access is denied|Permission denied|EACCES|operation not permitted/i.test(outputText)) {
+    return { severity: 'critical', category: 'system-permission', code: 'permission-denied', summary: 'Permission denied' };
+  }
+  if (/SyntaxError:|TypeError:|ReferenceError:|ParserError:|Uncaught Exception|IndentationError:/i.test(outputText)) {
+    return { severity: 'critical', category: 'syntax-error', code: 'syntax-error', summary: 'Syntax / Runtime exception' };
+  }
+  if (/ERR_OUT_OF_MEMORY|Reached heap limit|OutOfMemoryError|Killed process/i.test(outputText)) {
+    return { severity: 'critical', category: 'execution-failed', code: 'out-of-memory', summary: 'Out of memory / process killed' };
+  }
+  if (/command not found|is not recognized|Cannot find module|ModuleNotFoundError:|No module named/i.test(outputText)) {
+    return { severity: 'major', category: 'dependency-missing', code: 'command-not-found', summary: 'Command or module not found' };
+  }
+  if (/no such file or directory|cannot find the path|ENOENT/i.test(outputText)) {
+    return { severity: 'major', category: 'execution-failed', code: 'path-not-found', summary: 'File or path not found' };
+  }
+  if (/CONFLICT \(content\):|fatal:/i.test(outputText)) {
+    return { severity: 'major', category: 'git-conflict', code: 'git-fatal-conflict', summary: 'Git conflict or fatal error' };
+  }
+  if (/npm ERR!|ERR_[A-Z0-9_]+|Traceback \(most recent call last\):|exit code [1-9]\d*/i.test(outputText)) {
+    return { severity: 'major', category: 'execution-failed', code: 'execution-failed', summary: 'Execution / Command error' };
+  }
+  if (/DeprecationWarning:|npm WARN/i.test(outputText)) {
+    return { severity: 'minor', category: 'warning-notice', code: 'warning-notice', summary: 'Warning notice' };
+  }
+
+  return { severity: 'major', category: 'execution-failed', code: 'execution-failed', summary: 'Output error detected' };
+}
+
+// Unified error details lookup (supports pre-parsed errorDetails or client-side fallback)
+function getErrorDetails(output) {
+  if (!output) return null;
+  if (output.errorDetails) return output.errorDetails;
+  if (output.isError && output.text) {
+    return analyzeOutputError(output.text);
+  }
+  return null;
+}
+
 // DOM Elements
 const taskIdBadge = document.getElementById('task-id-badge');
 const modelBadge = document.getElementById('model-badge');
@@ -874,13 +920,17 @@ function renderTimeline() {
     }
 
     let errBadgeHTML = '';
-    const errAction = step.actions && step.actions.find(a => a.output && (a.output.isError || a.output.errorDetails));
+    const errAction = step.actions && step.actions.find(a => a.output && (a.output.isError || getErrorDetails(a.output)));
     if (errAction && errAction.output) {
-      const ed = errAction.output.errorDetails || {};
-      const sev = (ed.severity || (step.hasError ? 'critical' : 'major')).toUpperCase();
+      const ed = getErrorDetails(errAction.output) || {};
+      const sev = (ed.severity || 'major').toUpperCase();
       const badgeColor = sev === 'CRITICAL' ? 'var(--rose, #f43f5e)' : 'var(--amber, #f59e0b)';
       const badgeBg = sev === 'CRITICAL' ? 'rgba(244, 63, 94, 0.15)' : 'rgba(245, 158, 11, 0.15)';
-      errBadgeHTML = `<span class="badge" style="background: ${badgeBg}; color: ${badgeColor}; border: 1px solid ${badgeColor}; font-size: 9px; padding: 1px 4px; margin-left: 6px; font-weight: 700;">${sev}</span>`;
+      errBadgeHTML += `<span class="badge" style="background: ${badgeBg}; color: ${badgeColor}; border: 1px solid ${badgeColor}; font-size: 9px; padding: 1px 4px; margin-left: 6px; font-weight: 700;">${sev}</span>`;
+    } else if (thresholdSettings.enableTokenThreshold && tokenLevel === 'error') {
+      errBadgeHTML += `<span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid #c084fc; font-size: 9px; padding: 1px 4px; margin-left: 6px; font-weight: 700;">TOKEN ERR</span>`;
+    } else if (thresholdSettings.enableTimeThreshold && timeLevel === 'error') {
+      errBadgeHTML += `<span class="badge" style="background: rgba(234, 179, 8, 0.15); color: #eab308; border: 1px solid #eab308; font-size: 9px; padding: 1px 4px; margin-left: 6px; font-weight: 700;">SLOW TURN</span>`;
     }
 
     item.innerHTML = `
@@ -1108,11 +1158,12 @@ function updateActiveStepDetails() {
     step.actions.forEach((a, ai) => {
       if (a.output) {
         let errRibbon = '';
-        if (a.output.isError || a.output.errorDetails) {
-          const ed = a.output.errorDetails || {};
-          const sev = (ed.severity || 'major').toUpperCase();
-          const cat = (ed.category || 'execution-failed').toUpperCase();
-          const summary = ed.summary || 'Error detected in tool output';
+        const ed = getErrorDetails(a.output);
+        if (a.output.isError || ed) {
+          const details = ed || {};
+          const sev = (details.severity || 'major').toUpperCase();
+          const cat = (details.category || 'execution-failed').toUpperCase();
+          const summary = details.summary || 'Error detected in tool output';
           const isCritical = sev === 'CRITICAL';
           const ribbonBorderColor = isCritical ? 'var(--rose, #f43f5e)' : 'var(--amber, #f59e0b)';
           const ribbonBgColor = isCritical ? 'rgba(244, 63, 94, 0.12)' : 'rgba(245, 158, 11, 0.12)';
