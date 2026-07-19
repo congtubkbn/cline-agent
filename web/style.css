@@ -799,6 +799,29 @@ input[type=range]::-webkit-slider-thumb:hover {
   border-color: var(--fill-10);
 }
 
+.btn-filter[data-filter="warning"].active {
+  background: var(--amber-glow);
+  color: var(--amber);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.btn-filter[data-filter="error"].active {
+  background: var(--rose-glow);
+  color: var(--rose);
+  border-color: rgba(244, 63, 94, 0.4);
+}
+
+/* Status colors for timeline indicators */
+.status-safe {
+  color: var(--emerald) !important;
+}
+.status-warning {
+  color: var(--amber) !important;
+}
+.status-error {
+  color: var(--rose) !important;
+}
+
 /* Timeline Components */
 .timeline-container {
   padding: 20px;

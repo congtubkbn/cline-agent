@@ -186,9 +186,16 @@ function setupEventListeners() {
       hideUpdateBanner();
     });
   }
-
-
-
+  // Timeline filters
+  const filterButtons = document.querySelectorAll('.btn-filter');
+  filterButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentTimelineFilter = btn.dataset.filter || 'all';
+      applyTimelineFilter();
+    });
+  });
   // Timeline search
   const timelineSearch = document.getElementById('timeline-search');
   if (timelineSearch) {
@@ -639,6 +646,30 @@ function renderTimeline() {
 
     item.classList.add(itemKindClass);
 
+    // Calculate anomaly levels for time & token in
+    const durationSec = (step.durationMs || 0) / 1000;
+    const tokensIn = (step.request && step.request.tokensIn) || 0;
+
+    let timeLevel = 'safe';
+    if (durationSec >= 30 && durationSec <= 90) {
+      timeLevel = 'warning';
+    } else if (durationSec > 90) {
+      timeLevel = 'error';
+    }
+
+    let tokenLevel = 'safe';
+    if (tokensIn >= 50000 && tokensIn <= 120000) {
+      tokenLevel = 'warning';
+    } else if (tokensIn > 120000) {
+      tokenLevel = 'error';
+    }
+
+    item.dataset.timeLevel = timeLevel;
+    item.dataset.tokenLevel = tokenLevel;
+
+    const timeStatusClass = `status-${timeLevel}`;
+    const tokenStatusClass = `status-${tokenLevel}`;
+
     // Get time elapsed and turn duration
     const elapsed = idx === 0 ? '0s' : `+${Math.round((step.tsStart - flowData.turns[0].tsStart) / 1000)}s`;
     const turnDuration = idx === 0 ? '' : formatDuration(step.durationMs);
@@ -662,11 +693,11 @@ function renderTimeline() {
         <div class="timeline-meta">
           <div class="timeline-left">
             <span class="timeline-step">TURN ${step.index}</span>
-            ${turnDuration ? `<span class="timeline-duration" title="Thời gian chạy của Turn này">(${turnDuration})</span>` : ''}
+            ${turnDuration ? `<span class="timeline-duration ${timeStatusClass}" title="Thời gian chạy: ${durationSec}s (${timeLevel.toUpperCase()})">(${turnDuration})</span>` : ''}
           </div>
           <div class="timeline-right">
             <span class="timeline-time" title="Tổng thời gian đã trôi qua: Lúc ${absoluteTime}">${elapsed}</span>
-            ${step.request?.contextWindow ? `<span class="timeline-ctx" title="Context Window Usage">🪟 ${step.request.contextWindow.percent}%</span>` : ''}
+            ${step.request?.contextWindow ? `<span class="timeline-ctx ${tokenStatusClass}" title="Token In: ${tokensIn.toLocaleString()} tokens (${tokenLevel.toUpperCase()})">🪟 ${step.request.contextWindow.percent}%</span>` : ''}
           </div>
         </div>
         <div class="timeline-title">${label}</div>
@@ -748,7 +779,16 @@ function applyTimelineFilter() {
       }
     }
     
-    if (matchesSearch) {
+    // Check anomaly filter
+    let matchesAnomaly = true;
+    if (currentTimelineFilter === 'warning') {
+      matchesAnomaly = (item.dataset.timeLevel === 'warning' || item.dataset.tokenLevel === 'warning');
+    } else if (currentTimelineFilter === 'error') {
+      matchesAnomaly = (item.dataset.timeLevel === 'error' || item.dataset.tokenLevel === 'error' || step.hasError || (step.errors && step.errors.length > 0));
+    }
+
+    const visible = matchesAnomaly && matchesSearch;
+    if (visible) {
       item.classList.remove('filtered-out');
     } else {
       item.classList.add('filtered-out');
