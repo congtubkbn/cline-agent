@@ -919,19 +919,32 @@ function renderTimeline() {
       desc = 'Chatting...';
     }
 
-    let errBadgeHTML = '';
-    const errAction = step.actions && step.actions.find(a => a.output && (a.output.isError || getErrorDetails(a.output)));
-    if (errAction && errAction.output) {
-      const ed = getErrorDetails(errAction.output) || {};
-      const sev = (ed.severity || 'major').toUpperCase();
-      const badgeColor = sev === 'CRITICAL' ? 'var(--rose, #f43f5e)' : 'var(--amber, #f59e0b)';
-      const badgeBg = sev === 'CRITICAL' ? 'rgba(244, 63, 94, 0.15)' : 'rgba(245, 158, 11, 0.15)';
-      errBadgeHTML += `<span class="badge" style="background: ${badgeBg}; color: ${badgeColor}; border: 1px solid ${badgeColor}; font-size: 9px; padding: 1px 4px; margin-left: 6px; font-weight: 700;">${sev}</span>`;
-    } else if (thresholdSettings.enableTokenThreshold && tokenLevel === 'error') {
-      errBadgeHTML += `<span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid #c084fc; font-size: 9px; padding: 1px 4px; margin-left: 6px; font-weight: 700;">TOKEN ERR</span>`;
-    } else if (thresholdSettings.enableTimeThreshold && timeLevel === 'error') {
-      errBadgeHTML += `<span class="badge" style="background: rgba(234, 179, 8, 0.15); color: #eab308; border: 1px solid #eab308; font-size: 9px; padding: 1px 4px; margin-left: 6px; font-weight: 700;">SLOW TURN</span>`;
+    const errBadges = [];
+
+    // 1. Collect tool/command execution output error badges
+    if (step.actions) {
+      step.actions.forEach(a => {
+        if (a.output && (a.output.isError || getErrorDetails(a.output))) {
+          const ed = getErrorDetails(a.output) || {};
+          const sev = (ed.severity || 'major').toUpperCase();
+          const badgeColor = sev === 'CRITICAL' ? 'var(--rose, #f43f5e)' : 'var(--amber, #f59e0b)';
+          const badgeBg = sev === 'CRITICAL' ? 'rgba(244, 63, 94, 0.15)' : 'rgba(245, 158, 11, 0.15)';
+          errBadges.push(`<span class="badge" style="background: ${badgeBg}; color: ${badgeColor}; border: 1px solid ${badgeColor}; font-size: 9px; padding: 1px 4px; font-weight: 700;">${sev}</span>`);
+        }
+      });
     }
+
+    // 2. Collect Token In threshold breach badge
+    if (thresholdSettings.enableTokenThreshold && tokenLevel === 'error') {
+      errBadges.push(`<span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid #c084fc; font-size: 9px; padding: 1px 4px; font-weight: 700;">TOKEN ERR</span>`);
+    }
+
+    // 3. Collect Time duration threshold breach badge
+    if (thresholdSettings.enableTimeThreshold && timeLevel === 'error') {
+      errBadges.push(`<span class="badge" style="background: rgba(234, 179, 8, 0.15); color: #eab308; border: 1px solid #eab308; font-size: 9px; padding: 1px 4px; font-weight: 700;">SLOW TURN</span>`);
+    }
+
+    const errBadgeHTML = errBadges.length > 0 ? `<div style="display:inline-flex; gap:3px; margin-left:4px;">${errBadges.join('')}</div>` : '';
 
     item.innerHTML = `
       <div class="timeline-info">
