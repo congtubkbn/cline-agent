@@ -816,11 +816,7 @@ function updateActiveStepDetails() {
   simStepBadge.textContent = `Turn ${step.index}`;
   const elapsed = currentStepIndex === 0 ? 'Start' : `+${Math.round((step.tsStart - flowData.turns[0].tsStart) / 1000)}s`;
   
-  let typeLabel = 'Analysis & Reasoning Step';
-  if (step.actions && step.actions.length > 0) {
-    typeLabel = step.actions[0].kind === 'command' ? 'Execute Terminal Command' : 'Call Extension Tool';
-  }
-  simStepTitle.textContent = `${typeLabel} (${elapsed})`;
+  simStepTitle.textContent = `(${elapsed})`;
 
   // Turn vitals: duration, tokens in→out, context window
   if (simStepStats) {
