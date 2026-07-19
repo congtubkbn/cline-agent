@@ -20,7 +20,11 @@ let thresholdSettings = {
   timeWarning: 30,
   timeError: 90,
   tokenWarning: 5000,
-  tokenError: 10000
+  tokenError: 10000,
+  // Error source toggles — which sources contribute to Warning/Error counts
+  enableTimeThreshold: true,
+  enableTokenThreshold: true,
+  enableParserErrors: true
 };
 
 // Load thresholds from localStorage
@@ -296,6 +300,22 @@ function setupEventListeners() {
   const setTimeError = document.getElementById('set-time-error');
   const setTokenWarning = document.getElementById('set-token-warning');
   const setTokenError = document.getElementById('set-token-error');
+  const setEnableTime = document.getElementById('set-enable-time');
+  const setEnableToken = document.getElementById('set-enable-token');
+  const setEnableErrors = document.getElementById('set-enable-errors');
+
+  // Helper: grey-out threshold inputs when the source toggle is OFF
+  function syncThresholdDisabledState() {
+    const timeOff = setEnableTime && !setEnableTime.checked;
+    const tokenOff = setEnableToken && !setEnableToken.checked;
+    [setTimeWarning, setTimeError].forEach(el => { if (el) el.disabled = timeOff; });
+    [setTokenWarning, setTokenError].forEach(el => { if (el) el.disabled = tokenOff; });
+    document.querySelectorAll('.threshold-group-time').forEach(el => el.classList.toggle('source-disabled', timeOff));
+    document.querySelectorAll('.threshold-group-token').forEach(el => el.classList.toggle('source-disabled', tokenOff));
+  }
+
+  if (setEnableTime)  setEnableTime.addEventListener('change',  syncThresholdDisabledState);
+  if (setEnableToken) setEnableToken.addEventListener('change', syncThresholdDisabledState);
 
   if (btnSettingsOpen && settingsModal) {
     btnSettingsOpen.addEventListener('click', () => {
@@ -304,7 +324,11 @@ function setupEventListeners() {
       setTimeError.value = thresholdSettings.timeError;
       setTokenWarning.value = thresholdSettings.tokenWarning;
       setTokenError.value = thresholdSettings.tokenError;
-      
+      // Load toggle states
+      if (setEnableTime)   setEnableTime.checked   = thresholdSettings.enableTimeThreshold;
+      if (setEnableToken)  setEnableToken.checked  = thresholdSettings.enableTokenThreshold;
+      if (setEnableErrors) setEnableErrors.checked = thresholdSettings.enableParserErrors;
+      syncThresholdDisabledState();
       settingsModal.classList.add('active');
     });
   }
@@ -327,6 +351,10 @@ function setupEventListeners() {
       thresholdSettings.timeError = parseInt(setTimeError.value, 10) || 90;
       thresholdSettings.tokenWarning = parseInt(setTokenWarning.value, 10) || 5000;
       thresholdSettings.tokenError = parseInt(setTokenError.value, 10) || 10000;
+      // Save toggle states
+      thresholdSettings.enableTimeThreshold  = setEnableTime   ? setEnableTime.checked   : true;
+      thresholdSettings.enableTokenThreshold = setEnableToken  ? setEnableToken.checked  : true;
+      thresholdSettings.enableParserErrors   = setEnableErrors ? setEnableErrors.checked : true;
 
       try {
         localStorage.setItem('analyzerThresholds', JSON.stringify(thresholdSettings));
@@ -349,6 +377,10 @@ function setupEventListeners() {
       setTimeError.value = 90;
       setTokenWarning.value = 5000;
       setTokenError.value = 10000;
+      if (setEnableTime)   setEnableTime.checked   = true;
+      if (setEnableToken)  setEnableToken.checked  = true;
+      if (setEnableErrors) setEnableErrors.checked = true;
+      syncThresholdDisabledState();
     });
   }
 }
@@ -759,9 +791,16 @@ function renderTimeline() {
     item.dataset.timeLevel = timeLevel;
     item.dataset.tokenLevel = tokenLevel;
 
-    // Count warnings and errors matching filter criteria
-    const isErr = (timeLevel === 'error' || tokenLevel === 'error' || step.hasError || (step.errors && step.errors.length > 0));
-    const isWarn = (timeLevel === 'warning' || tokenLevel === 'warning');
+    // Count warnings and errors — respect per-source toggles
+    const isErr = (
+      (thresholdSettings.enableTimeThreshold  && timeLevel === 'error')  ||
+      (thresholdSettings.enableTokenThreshold && tokenLevel === 'error') ||
+      (thresholdSettings.enableParserErrors   && (step.hasError || (step.errors && step.errors.length > 0)))
+    );
+    const isWarn = (
+      (thresholdSettings.enableTimeThreshold  && timeLevel === 'warning') ||
+      (thresholdSettings.enableTokenThreshold && tokenLevel === 'warning')
+    );
     if (isErr) errorCount++;
     if (isWarn) warningCount++;
 
@@ -886,12 +925,19 @@ function applyTimelineFilter() {
       }
     }
     
-    // Check anomaly filter
+    // Check anomaly filter — respect per-source toggles
     let matchesAnomaly = true;
     if (currentTimelineFilter === 'warning') {
-      matchesAnomaly = (item.dataset.timeLevel === 'warning' || item.dataset.tokenLevel === 'warning');
+      matchesAnomaly = (
+        (thresholdSettings.enableTimeThreshold  && item.dataset.timeLevel === 'warning') ||
+        (thresholdSettings.enableTokenThreshold && item.dataset.tokenLevel === 'warning')
+      );
     } else if (currentTimelineFilter === 'error') {
-      matchesAnomaly = (item.dataset.timeLevel === 'error' || item.dataset.tokenLevel === 'error' || step.hasError || (step.errors && step.errors.length > 0));
+      matchesAnomaly = (
+        (thresholdSettings.enableTimeThreshold  && item.dataset.timeLevel === 'error')  ||
+        (thresholdSettings.enableTokenThreshold && item.dataset.tokenLevel === 'error') ||
+        (thresholdSettings.enableParserErrors   && (step.hasError || (step.errors && step.errors.length > 0)))
+      );
     }
 
     const visible = matchesAnomaly && matchesSearch;

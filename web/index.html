@@ -389,7 +389,7 @@
           <button class="modal-close" id="btn-settings-close"><i data-lucide="x"></i></button>
         </div>
         <div class="modal-body" style="display: flex; flex-direction: column; gap: 20px;">
-          <div>
+          <div class="threshold-group-time">
             <h4 style="font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Time Duration (Seconds)</h4>
             <div style="display: flex; gap: 16px;">
               <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
@@ -402,7 +402,7 @@
               </div>
             </div>
           </div>
-          <div>
+          <div class="threshold-group-token">
             <h4 style="font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Tokens In (Input Tokens)</h4>
             <div style="display: flex; gap: 16px;">
               <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
@@ -415,7 +415,36 @@
               </div>
             </div>
           </div>
+          <!-- Error Sources section -->
+          <div>
+            <h4 style="font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Error Sources</h4>
+            <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">Chọn nguồn nào được tính vào tab Warning / Error.</p>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <label class="toggle-row" for="set-enable-time">
+                <input type="checkbox" id="set-enable-time" checked>
+                <span class="toggle-label">
+                  <strong>Time Duration</strong>
+                  <small>Flag turns vượt ngưỡng thời gian chạy</small>
+                </span>
+              </label>
+              <label class="toggle-row" for="set-enable-token">
+                <input type="checkbox" id="set-enable-token" checked>
+                <span class="toggle-label">
+                  <strong>Token In</strong>
+                  <small>Flag turns vượt ngưỡng input tokens</small>
+                </span>
+              </label>
+              <label class="toggle-row" for="set-enable-errors">
+                <input type="checkbox" id="set-enable-errors" checked>
+                <span class="toggle-label">
+                  <strong>Parser Errors</strong>
+                  <small>Lỗi thực từ Cline / tool output (chỉ ảnh hưởng Error tab)</small>
+                </span>
+              </label>
+            </div>
+          </div>
         </div>
+
         <div class="modal-footer" style="padding: 16px 24px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; background: var(--inset-10);">
           <button class="btn btn-secondary" id="btn-settings-reset" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); padding: 8px 16px; border-radius: 8px; cursor: pointer;">Reset to Defaults</button>
           <button class="btn btn-primary" id="btn-settings-save" style="background: var(--indigo); border: 1px solid transparent; color: #fff; padding: 8px 16px; border-radius: 8px; cursor: pointer;">Apply Settings</button>

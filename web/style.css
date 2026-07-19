@@ -1404,6 +1404,51 @@ input[type=range]::-webkit-slider-thumb:hover {
 .modal-body {
   padding: 24px;
   flex-grow: 1;
+  overflow-y: auto;
+}
+
+/* ===== Settings: Error Source Toggles ===== */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  padding: 8px 10px;
+  border-radius: 8px;
+  transition: background 0.15s;
+  user-select: none;
+}
+.toggle-row:hover {
+  background: var(--fill-03);
+}
+.toggle-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  accent-color: var(--indigo);
+  cursor: pointer;
+}
+.toggle-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.toggle-label strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.toggle-label small {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+/* When a source toggle is OFF — grey out the associated threshold group */
+.source-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.source-disabled input {
+  cursor: not-allowed;
 }
 
 #sidecar-file-content {
