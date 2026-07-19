@@ -65,9 +65,33 @@ export function groupTurns(events) {
           ? { ts: e.ts, text: cur.reasoning.text + '\n\n' + e.text }
           : { ts: e.ts, text: e.text };
         break;
-      case 'text':
-        cur.texts.push({ ts: e.ts, text: e.text });
+      case 'text': {
+        const toolCall = parseXmlToolCall(e.text);
+        if (toolCall) {
+          if (toolCall.tool === 'execute_command') {
+            cur.actions.push({
+              kind: 'command',
+              ts: e.ts,
+              what: { command: toolCall.params.command },
+              text: e.text,
+              why: null,
+              output: null
+            });
+          } else {
+            cur.actions.push({
+              kind: 'tool',
+              ts: e.ts,
+              what: { tool: toolCall.tool, ...toolCall.params },
+              text: e.text,
+              why: null,
+              output: null
+            });
+          }
+        } else {
+          cur.texts.push({ ts: e.ts, text: e.text });
+        }
         break;
+      }
       case 'tool':
         cur.actions.push({ kind: 'tool', ts: e.ts, what: e.data || {}, text: e.text, why: null, output: null });
         break;
@@ -112,4 +136,20 @@ export function parseChecklist(text) {
     .map(l => l.match(/^- \[( |x|X)\]\s+(.*)$/))
     .filter(Boolean)
     .map(m => ({ done: m[1].toLowerCase() === 'x', text: m[2].trim() }));
+}
+
+export function parseXmlToolCall(text) {
+  if (!text || !text.includes('<tool_call>')) return null;
+  const funcMatch = text.match(/<function=(\w+)>/);
+  if (!funcMatch) return null;
+  const tool = funcMatch[1];
+  
+  const params = {};
+  const paramRegex = /<parameter=(\w+)>([\s\S]*?)<\/parameter>/g;
+  let match;
+  while ((match = paramRegex.exec(text)) !== null) {
+    params[match[1]] = match[2].trim();
+  }
+  
+  return { tool, params };
 }

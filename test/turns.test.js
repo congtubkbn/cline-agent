@@ -78,4 +78,20 @@ test('ignores user response and resumption events when updating turn duration', 
   assert.equal(turns[0].durationMs, 300); // 1300 - 1000 (starting at the task event ts)
 });
 
+test('parses XML tool calls from text events as actions', () => {
+  const events = [
+    { subtype: 'task', text: 'new task prompt', ts: 1000 },
+    {
+      subtype: 'text',
+      text: `<tool_call>\n<function=execute_command>\n<parameter=requires_approval>\nFalse\n</parameter>\n<parameter=command>\nagent-browser snapshot -i\n</parameter>\n</function>\n</tool_call>`,
+      ts: 1100
+    }
+  ];
+  const t = groupTurns(events)[0];
+  assert.equal(t.actions.length, 1);
+  assert.equal(t.actions[0].kind, 'command');
+  assert.equal(t.actions[0].what.command, 'agent-browser snapshot -i');
+  assert.equal(t.texts.length, 0);
+});
+
 

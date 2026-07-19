@@ -535,14 +535,23 @@ function setupPlaybackSlider() {
 
 // Get icon by event type/action kind
 function getIconForStep(step) {
+  if (step.hasError || (step.errors && step.errors.length > 0)) return 'alert-triangle';
   if (step.index === 0) return 'play-circle';
   if (step.actions && step.actions.length > 0) {
     const action = step.actions[0];
-    if (action.kind === 'command') return 'terminal';
+    if (action.kind === 'command') {
+      const cmd = action.what?.command || '';
+      if (cmd.trim().startsWith('agent-browser')) {
+        return 'globe';
+      }
+      return 'terminal';
+    }
     if (action.kind === 'tool') return 'wrench';
   }
-  if (step.checkpoint) return 'shield-check';
-  return 'cpu';
+  if (step.checkpoint && (!step.reasoning || !step.reasoning.preview)) {
+    return 'shield-check';
+  }
+  return 'message-square';
 }
 
 // Render Left Panel Timeline
@@ -562,31 +571,53 @@ function renderTimeline() {
     switch (tool) {
       case 'readFile':
       case 'read_file':
-        return baseName ? `Read: ${baseName}` : 'Read File';
+        return `[read_file for "${baseName || filePath || ''}"]`;
       case 'writeFile':
       case 'write_to_file':
-        return baseName ? `Write: ${baseName}` : 'Write File';
+        return `[write_to_file for "${baseName || filePath || ''}"]`;
       case 'replace_file_content':
-        return baseName ? `Edit: ${baseName}` : 'Edit File';
+        return `[replace_file_content for "${baseName || filePath || ''}"]`;
       case 'grep_search':
-        return action.what?.query ? `Search: "${action.what.query}"` : 'Search Code';
+        return `[grep_search for "${action.what?.query || ''}"]`;
       case 'list_dir':
-        return `List Dir: ${baseName || '.'}`;
+        return `[list_dir for "${baseName || filePath || '.'}"]`;
       case 'useSkill':
-        return `Skill: ${action.what?.path || 'useSkill'}`;
+        return `[use_skill for "${action.what?.path || ''}"]`;
       case 'ask_question':
-        return 'Ask User';
+        return '[ask_question]';
       default:
-        return `Tool: ${tool || 'Action'}`;
+        return `[${tool || 'action'}]`;
     }
   };
 
   const getCommandLabel = (action) => {
     const cmd = action.what?.command || '';
-    if (!cmd) return 'Run Command';
+    if (!cmd) return '[execute_command]';
     const trimmed = cmd.trim();
     const firstLine = trimmed.split('\n')[0].trim();
-    return `Command: ${firstLine.length > 25 ? firstLine.slice(0, 22) + '...' : firstLine}`;
+    const maxLen = 35;
+    const truncated = firstLine.length > maxLen ? firstLine.slice(0, maxLen - 3) + '...' : firstLine;
+    return `[execute_command for '${truncated}']`;
+  };
+
+  const getRequestPreview = (request) => {
+    let text = request?.text?.summary || request?.text?.preview || '';
+    if (!text) return '';
+    
+    // Clean up JSON strings if it starts with {"request":...}
+    if (text.startsWith('{"request":')) {
+      try {
+        const parsed = JSON.parse(text);
+        text = parsed.request || text;
+      } catch (e) {}
+    }
+    
+    // Replace newlines with spaces for single-line display
+    let cleaned = text.replace(/\r?\n/g, ' ').trim();
+    
+    // Truncate to exactly 50 chars
+    const maxLen = 50;
+    return cleaned.length > maxLen ? cleaned.slice(0, maxLen) : cleaned;
   };
 
   timelineList.innerHTML = '';
@@ -597,22 +628,22 @@ function renderTimeline() {
     
     // Determine classes and type
     let itemKindClass = 'item-reasoning';
-    let label = 'Reasoning / Chat';
-    if (idx === 0) {
+    let label = getRequestPreview(step.request) || 'Reasoning / Chat';
+    
+    if (step.hasError || (step.errors && step.errors.length > 0)) {
+      itemKindClass = 'item-error';
+    } else if (idx === 0) {
       itemKindClass = 'item-task';
       label = 'Start Task';
     } else if (step.actions && step.actions.length > 0) {
       const action = step.actions[0];
       if (action.kind === 'command') {
         itemKindClass = 'item-command';
-        label = getCommandLabel(action);
       } else {
         itemKindClass = 'item-tool';
-        label = getToolLabel(action);
       }
-    } else if (step.checkpoint) {
+    } else if (step.checkpoint && (!step.reasoning || !step.reasoning.preview)) {
       itemKindClass = 'item-checkpoint';
-      label = 'Save Checkpoint';
     }
 
     item.classList.add(itemKindClass);
@@ -622,17 +653,20 @@ function renderTimeline() {
     const turnDuration = idx === 0 ? '' : formatDuration(step.durationMs);
     const absoluteTime = step.tsStart ? new Date(step.tsStart).toLocaleString() : 'N/A';
 
-    // Short description
-    let desc = step.reasoning ? step.reasoning.preview : 'Processing...';
-    if (step.actions && step.actions.length > 0) {
+    // Short description: focus on reasoning, fallback to action details
+    let desc = 'Processing...';
+    if (step.reasoning && step.reasoning.preview) {
+      desc = step.reasoning.preview;
+    } else if (step.actions && step.actions.length > 0) {
       const firstAct = step.actions[0];
       desc = firstAct.kind === 'command' ? firstAct.what.command : `Call ${firstAct.what.tool}`;
+    } else if (step.checkpoint) {
+      desc = 'Saved checkpoint.';
+    } else {
+      desc = 'Chatting...';
     }
 
     item.innerHTML = `
-      <div class="timeline-icon-box">
-        <i data-lucide="${getIconForStep(step)}"></i>
-      </div>
       <div class="timeline-info">
         <div class="timeline-meta">
           <div class="timeline-left">

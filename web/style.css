@@ -808,21 +808,9 @@ input[type=range]::-webkit-slider-thumb:hover {
   position: relative;
 }
 
-/* Timeline Vertical Line */
-.timeline-container::before {
-  content: '';
-  position: absolute;
-  left: 36px;
-  top: 30px;
-  bottom: 30px;
-  width: 2px;
-  background: var(--fill-04);
-  z-index: 0;
-}
-
 .timeline-item {
   display: flex;
-  gap: 16px;
+  flex-direction: column;
   padding: 12px;
   border-radius: 12px;
   cursor: pointer;
@@ -855,25 +843,6 @@ input[type=range]::-webkit-slider-thumb:hover {
   background: var(--indigo);
   border-radius: 0 4px 4px 0;
 }
-
-.timeline-icon-box {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  z-index: 2;
-  box-shadow: 0 2px 8px var(--inset-20);
-}
-
-.timeline-item.item-task .timeline-icon-box { background: var(--cyan-glow); color: var(--cyan); }
-.timeline-item.item-reasoning .timeline-icon-box { background: var(--indigo-glow); color: var(--indigo); }
-.timeline-item.item-tool .timeline-icon-box { background: var(--amber-glow); color: var(--amber); }
-.timeline-item.item-command .timeline-icon-box { background: var(--amber-glow); color: var(--amber); }
-.timeline-item.item-checkpoint .timeline-icon-box { background: var(--emerald-glow); color: var(--emerald); }
-.timeline-item.item-success .timeline-icon-box { background: var(--emerald-glow); color: var(--emerald); }
 
 .timeline-info {
   display: flex;
