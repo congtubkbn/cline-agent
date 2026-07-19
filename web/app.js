@@ -265,6 +265,14 @@ function setupEventListeners() {
     });
   });
 
+  // Raise GitHub Issue for current Turn button
+  const btnRaiseIssue = document.getElementById('btn-raise-issue');
+  if (btnRaiseIssue) {
+    btnRaiseIssue.addEventListener('click', () => {
+      createGitHubIssueForTurn(currentStepIndex);
+    });
+  }
+
   // Copy JSON button
   btnCopyJson.addEventListener('click', () => {
     const jsonStr = jsonInspector.textContent;
@@ -1422,6 +1430,11 @@ function renderAnalysisPanel() {
           ${f.detail ? `<div class="finding-detail">${escapeHtml(f.detail)}</div>` : ''}
           <div class="finding-evidence">Evidence: ${evLinks}${more}</div>
           ${f.suggestion ? `<div class="finding-suggestion"><i data-lucide="lightbulb"></i> ${escapeHtml(f.suggestion)}</div>` : ''}
+          <div style="margin-top: 12px; display: flex; justify-content: flex-end;">
+            <button class="btn btn-secondary btn-sm" onclick="createGitHubIssueForFinding('${f.id}')" style="display: flex; align-items: center; gap: 6px;">
+              <i data-lucide="github"></i> Raise GitHub Issue
+            </button>
+          </div>
         </div>
       `;
     }).join('');
@@ -1440,14 +1453,127 @@ function renderAnalysisPanel() {
   if (window.lucide) lucide.createIcons();
 }
 
-// Jump from a finding's evidence to the referenced turn in the Simulator tab.
-function jumpToTurn(turnIndex) {
-  const simBtn = document.querySelector('.tab-btn[data-tab="simulator"]');
-  if (simBtn) simBtn.click();
-  setCurrentStep(turnIndex);
-  if (isPlaying) pause();
+// Build and open GitHub Issue pre-fill URL for a specific Turn
+function createGitHubIssueForTurn(stepIndex) {
+  if (!flowData || stepIndex == null || stepIndex < 0 || stepIndex >= flowData.turns.length) return;
+  const turn = flowData.turns[stepIndex];
+  const taskId = flowData.taskId || currentTaskId || 'unknown-task';
+  const modelName = flowData.model ? `${flowData.model.modelId} (${flowData.model.mode})` : 'Unknown';
+  const baseUrl = window.location.origin + window.location.pathname;
+  const deepLink = `${baseUrl}#turn-${stepIndex}`;
+
+  const reqText = turn.request?.text?.preview || 'N/A';
+  const tokensIn = turn.request?.tokensIn || 0;
+  const tokensOut = turn.request?.tokensOut || 0;
+  const actionSummary = turn.actions && turn.actions.length > 0 
+    ? turn.actions.map(a => `${a.kind}: ${JSON.stringify(a.what)}`).join('\n')
+    : 'No action recorded';
+  const reasoning = turn.reasoning?.preview || 'No reasoning text recorded';
+
+  const title = `[Agent Fault]: Issue observed at Turn ${stepIndex} (Task: ${taskId})`;
+  const body = `## ⚠️ [BUG/FAULT]: Agent Execution Issue at Turn ${stepIndex}
+
+### 📌 Summary
+Issue observed at **Turn ${stepIndex}** of Task **\`${taskId}\`**.
+
+---
+
+### 🔗 Context & Environment
+- **Task ID:** \`${taskId}\`
+- **Model:** \`${modelName}\`
+- **Turn Deep Link:** [View Turn ${stepIndex} in Dashboard](${deepLink})
+- **Tokens In:** \`${tokensIn.toLocaleString()}\`
+- **Tokens Out:** \`${tokensOut.toLocaleString()}\`
+
+---
+
+### 📊 Observed Evidence (Trace Data)
+- **Evidence Reference:** \`turns[${stepIndex}]\`
+- **Action(s):**
+\`\`\`
+${actionSummary}
+\`\`\`
+
+#### Agent Reasoning Excerpt:
+> ${reasoning.replace(/\n/g, '\n> ')}
+
+---
+
+### 🔀 Expected vs. Actual Behavior
+
+| Expected Behavior | Actual Behavior |
+| :--- | :--- |
+| Agent executes turn step correctly without errors or abnormal metric spikes. | Abnormal behavior, failure, or threshold breach observed at Turn ${stepIndex}. |
+
+---
+
+### 🛠️ Actionable Guidance for Dev
+- [ ] Inspect \`SKILL.md\` or prompt instructions relevant to this step.
+- [ ] Check command output / tool execution errors at Turn ${stepIndex}.
+- [ ] Verify if pre-conditions or context window limits caused thrashing.
+
+---
+*Reported via Cline Agent Loop Analyzer*`;
+
+  const issueUrl = `https://github.com/congtubkbn/cline-agent/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&labels=bug,trace-fault`;
+  window.open(issueUrl, '_blank');
 }
+
+// Build and open GitHub Issue pre-fill URL for a specific Finding
+function createGitHubIssueForFinding(findingId) {
+  if (!flowData || !flowData.analysis || !flowData.analysis.findings) return;
+  const f = flowData.analysis.findings.find(x => x.id === findingId);
+  if (!f) return;
+
+  const taskId = flowData.taskId || currentTaskId || 'unknown-task';
+  const modelName = flowData.model ? `${flowData.model.modelId} (${flowData.model.mode})` : 'Unknown';
+  const baseUrl = window.location.origin + window.location.pathname;
+  
+  const firstTurnEv = f.evidence ? f.evidence.find(e => e.turn != null) : null;
+  const deepLink = firstTurnEv ? `${baseUrl}#turn-${firstTurnEv.turn}` : `${baseUrl}#tab-analysis`;
+
+  const title = `[Analysis Finding ${f.id}]: ${f.title} (Task: ${taskId})`;
+  const body = `## ⚠️ [BUG/FAULT]: ${f.id} - ${f.title}
+
+### 📌 Summary
+Finding **${f.id}** (${f.category}) detected with **${f.severity.toUpperCase()}** severity on Task **\`${taskId}\`**.
+
+---
+
+### 🔗 Context & Environment
+- **Task ID:** \`${taskId}\`
+- **Model:** \`${modelName}\`
+- **Category:** \`${f.category}\`
+- **Severity:** \`${f.severity}\`
+- **Deep Link:** [View Evidence in Dashboard](${deepLink})
+
+---
+
+### 📊 Finding Details & Evidence
+${f.detail ? `**Detail:** ${f.detail}\n` : ''}
+- **Evidence References:** ${f.evidence.map(e => `\`${e.ref}\``).join(', ')}
+
+---
+
+### 💡 Suggested Recommendation
+> ${f.suggestion || 'Inspect referenced trace turns and update skill instructions.'}
+
+---
+
+### 🛠️ Actionable Guidance for Dev
+- [ ] Review the referenced turns in the trace analyzer.
+- [ ] Update \`SKILL.md\` or workflow definitions to prevent recurrence.
+
+---
+*Reported via Cline Agent Loop Analyzer*`;
+
+  const issueUrl = `https://github.com/congtubkbn/cline-agent/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&labels=${encodeURIComponent('bug,' + f.category)}`;
+  window.open(issueUrl, '_blank');
+}
+
 window.jumpToTurn = jumpToTurn;
+window.createGitHubIssueForTurn = createGitHubIssueForTurn;
+window.createGitHubIssueForFinding = createGitHubIssueForFinding;
 
 // Render FTA Mermaid Diagram
 function initFtaMermaid() {
