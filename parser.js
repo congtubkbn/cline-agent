@@ -7,6 +7,7 @@ import { buildFaultTree, ftaToMermaid } from './src/fta.js';
 import { buildAnalysisRecord } from './src/report.js';
 import { renderMarkdown, renderErrorMarkdown } from './src/render-md.js';
 import { renderHtml } from './src/render-html.js';
+import { renderViReport } from './src/render-vi-report.js';
 import { withSidecarHeader } from './src/sidecar.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -102,6 +103,14 @@ function runParse() {
   const flowReportPath = path.join(taskDir, `${taskId}_flow_report.md`);
   fs.writeFileSync(flowReportPath, markdownReport, 'utf-8');
   console.log('Saved flow report to:', flowReportPath);
+
+  // Render and save Vietnamese hierarchical report
+  const viReport = renderViReport(flow);
+  const viReportPath = path.join(taskDir, `${taskId}_bao_cao_chi_tiet.md`);
+  const webViReportPath = path.join(webTaskDir, 'bao_cao_chi_tiet.md');
+  fs.writeFileSync(viReportPath, viReport, 'utf-8');
+  fs.writeFileSync(webViReportPath, viReport, 'utf-8');
+  console.log('Saved Vietnamese report to:', viReportPath, 'and', webViReportPath);
 
   // Render and save flow_report.html (single-file debug view)
   const htmlReport = renderHtml(flow, { sidecars: sidecarTexts });
