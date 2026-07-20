@@ -25,6 +25,7 @@ let thresholdSettings = {
   enableTimeThreshold: true,
   enableTokenThreshold: true,
   enableParserErrors: true,
+  githubHost: 'https://github.com', // Default host
   githubRepo: '' // Default empty
 };
 
@@ -366,6 +367,7 @@ function setupEventListeners() {
   const setEnableTime = document.getElementById('set-enable-time');
   const setEnableToken = document.getElementById('set-enable-token');
   const setEnableErrors = document.getElementById('set-enable-errors');
+  const setGithubHost = document.getElementById('set-github-host');
   const setGithubRepo = document.getElementById('set-github-repo');
 
   // Helper: grey-out threshold inputs when the source toggle is OFF
@@ -388,10 +390,11 @@ function setupEventListeners() {
       setTimeError.value = thresholdSettings.timeError;
       setTokenWarning.value = thresholdSettings.tokenWarning;
       setTokenError.value = thresholdSettings.tokenError;
-      // Load toggle states and github repo
+      // Load toggle states and github repo/host
       if (setEnableTime)   setEnableTime.checked   = thresholdSettings.enableTimeThreshold;
       if (setEnableToken)  setEnableToken.checked  = thresholdSettings.enableTokenThreshold;
       if (setEnableErrors) setEnableErrors.checked = thresholdSettings.enableParserErrors;
+      if (setGithubHost)   setGithubHost.value     = thresholdSettings.githubHost || 'https://github.com';
       if (setGithubRepo)   setGithubRepo.value     = thresholdSettings.githubRepo || '';
       syncThresholdDisabledState();
       settingsModal.classList.add('active');
@@ -416,10 +419,11 @@ function setupEventListeners() {
       thresholdSettings.timeError = parseInt(setTimeError.value, 10) || 90;
       thresholdSettings.tokenWarning = parseInt(setTokenWarning.value, 10) || 5000;
       thresholdSettings.tokenError = parseInt(setTokenError.value, 10) || 10000;
-      // Save toggle states and github repo
+      // Save toggle states and github repo/host
       thresholdSettings.enableTimeThreshold  = setEnableTime   ? setEnableTime.checked   : true;
       thresholdSettings.enableTokenThreshold = setEnableToken  ? setEnableToken.checked  : true;
       thresholdSettings.enableParserErrors   = setEnableErrors ? setEnableErrors.checked : true;
+      thresholdSettings.githubHost           = setGithubHost   ? setGithubHost.value.trim() : 'https://github.com';
       thresholdSettings.githubRepo           = setGithubRepo   ? setGithubRepo.value.trim() : '';
 
       try {
@@ -444,6 +448,7 @@ function setupEventListeners() {
       if (setEnableTime)   setEnableTime.checked   = true;
       if (setEnableToken)  setEnableToken.checked  = true;
       if (setEnableErrors) setEnableErrors.checked = true;
+      if (setGithubHost)   setGithubHost.value     = 'https://github.com';
       if (setGithubRepo)   setGithubRepo.value     = '';
       syncThresholdDisabledState();
     });
@@ -1627,7 +1632,89 @@ function openGitHubIssueSafely(title, body, labels) {
   }
 }
 
-// Build and open GitHub Issue pre-fill URL for a specific Turn
+// Helper to safely construct GitHub Issue URL with custom host & repo and open modal/preview
+function openGitHubIssueSafely(title, body, labels = 'bug') {
+  let host = (thresholdSettings.githubHost || 'https://github.com').trim();
+  if (!/^https?:\/\//i.test(host)) {
+    host = 'https://' + host;
+  }
+  host = host.replace(/\/+$/, '');
+
+  const repo = (thresholdSettings.githubRepo || '').trim();
+  if (!repo) {
+    alert('⚠️ GitHub Repository chưa được cấu hình!\n\nVui lòng mở cài đặt (nút ⚙️ Settings) và nhập Host & Repository (VD: "https://github.samsung.com" và "samsung/mobile-agent") để tạo issue.');
+    const settingsModal = document.getElementById('settings-modal');
+    if (settingsModal) settingsModal.classList.add('active');
+    return;
+  }
+
+  const issueUrl = `${host}/${repo}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&labels=${encodeURIComponent(labels)}`;
+
+  // Show Issue Preview Modal
+  const previewModal = document.getElementById('issue-preview-modal');
+  const targetUrlInput = document.getElementById('issue-target-url');
+  const targetTitleInput = document.getElementById('issue-target-title');
+  const targetBodyPre = document.getElementById('issue-target-body');
+  const btnOpenUrl = document.getElementById('btn-issue-open-url');
+  const btnCopyOnly = document.getElementById('btn-issue-copy-only');
+  const btnCancel = document.getElementById('btn-issue-cancel');
+  const btnClose = document.getElementById('btn-issue-modal-close');
+
+  if (targetUrlInput) targetUrlInput.value = issueUrl;
+  if (targetTitleInput) targetTitleInput.value = title;
+  if (targetBodyPre) targetBodyPre.textContent = body;
+
+  // Auto-copy markdown body to clipboard for convenience
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(body).catch(() => {});
+  }
+
+  if (previewModal) {
+    previewModal.classList.add('active');
+
+    const handleOpen = () => {
+      window.open(issueUrl, '_blank');
+      previewModal.classList.remove('active');
+      cleanupListeners();
+    };
+
+    const handleCopy = () => {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(body).then(() => {
+          if (btnCopyOnly) btnCopyOnly.innerHTML = '<i data-lucide="check"></i> Copied!';
+          if (window.lucide) lucide.createIcons();
+          setTimeout(() => {
+            if (btnCopyOnly) btnCopyOnly.innerHTML = '<i data-lucide="copy"></i> Copy Markdown';
+            if (window.lucide) lucide.createIcons();
+          }, 1500);
+        });
+      }
+    };
+
+    const handleCloseModal = () => {
+      previewModal.classList.remove('active');
+      cleanupListeners();
+    };
+
+    function cleanupListeners() {
+      if (btnOpenUrl) btnOpenUrl.removeEventListener('click', handleOpen);
+      if (btnCopyOnly) btnCopyOnly.removeEventListener('click', handleCopy);
+      if (btnCancel) btnCancel.removeEventListener('click', handleCloseModal);
+      if (btnClose) btnClose.removeEventListener('click', handleCloseModal);
+    }
+
+    cleanupListeners();
+    if (btnOpenUrl) btnOpenUrl.addEventListener('click', handleOpen);
+    if (btnCopyOnly) btnCopyOnly.addEventListener('click', handleCopy);
+    if (btnCancel) btnCancel.addEventListener('click', handleCloseModal);
+    if (btnClose) btnClose.addEventListener('click', handleCloseModal);
+  } else {
+    // Fallback if modal is not in DOM
+    window.open(issueUrl, '_blank');
+  }
+}
+
+// Build and open QA-standardized GitHub Issue for a specific Turn
 function createGitHubIssueForTurn(stepIndex) {
   if (!flowData || stepIndex == null || stepIndex < 0 || stepIndex >= flowData.turns.length) return;
   const turn = flowData.turns[stepIndex];
@@ -1636,62 +1723,73 @@ function createGitHubIssueForTurn(stepIndex) {
   const baseUrl = window.location.origin + window.location.pathname;
   const deepLink = `${baseUrl}#turn-${stepIndex}`;
 
+  const act = turn.actions && turn.actions[0];
+  const toolName = act?.what?.tool || act?.what?.command || act?.kind || 'General Turn Execution';
+  const durationSec = Math.round((turn.durationMs || 0) / 1000);
   const tokensIn = turn.request?.tokensIn || 0;
   const tokensOut = turn.request?.tokensOut || 0;
-  const actionSummary = turn.actions && turn.actions.length > 0 
-    ? turn.actions.map(a => `${a.kind}: ${JSON.stringify(a.what)}`).join('\n')
-    : 'No action recorded';
-  const reasoning = (turn.reasoning?.preview || 'No reasoning text recorded').slice(0, 300);
+  const cacheReads = turn.request?.cacheReads || 0;
+  const ctxWin = turn.request?.contextWindow ? `${turn.request.contextWindow.percent}% (${turn.request.contextWindow.used}/${turn.request.contextWindow.total})` : 'N/A';
 
-  const title = `[Agent Fault]: Issue observed at Turn ${stepIndex} (Task: ${taskId})`;
-  const body = `## ⚠️ [BUG/FAULT]: Agent Execution Issue at Turn ${stepIndex}
+  // Error details / Actual Result
+  let actualResult = 'Issue / Threshold Anomaly observed at this turn.';
+  if (turn.hasError && turn.errors && turn.errors.length > 0) {
+    actualResult = turn.errors.map(e => e.text?.preview || e.text || 'Error occurred').join('\n');
+  } else if (turn.actions) {
+    const errAction = turn.actions.find(a => a.output && a.output.isError);
+    if (errAction) {
+      actualResult = errAction.output.preview || errAction.output.text || 'Tool output returned error status.';
+    }
+  }
 
-### 📌 Summary
-Issue observed at **Turn ${stepIndex}** of Task **\`${taskId}\`**.
+  const expectedResult = `Tool/Command '${toolName}' executes successfully without errors, timeout, or abnormal metric spikes.`;
+  const reasoningExcerpt = turn.reasoning?.preview || 'No reasoning text recorded.';
 
----
+  const title = `[Bug] [Turn ${stepIndex}] ${toolName.slice(0, 50)}`;
+  const body = `## 🐛 [QA Bug Report] Issue observed at Turn ${stepIndex}
 
-### 🔗 Context & Environment
-- **Task ID:** \`${taskId}\`
-- **Model:** \`${modelName}\`
-- **Turn Deep Link:** [View Turn ${stepIndex} in Dashboard](${deepLink})
-- **Tokens In:** \`${tokensIn.toLocaleString()}\`
-- **Tokens Out:** \`${tokensOut.toLocaleString()}\`
+### 📌 1. Bug Title
+**[Bug] [Turn ${stepIndex}] ${toolName}**
 
----
+### 📝 2. Problem Description
+Failure or abnormal behavior observed during execution of **Turn ${stepIndex}** in Task **\`${taskId}\`**.
+- **Tool / Action:** \`${toolName}\`
+- **Turn Index:** Turn ${stepIndex} of ${flowData.turns.length}
 
-### 📊 Observed Evidence (Trace Data)
-- **Evidence Reference:** \`turns[${stepIndex}]\`
-- **Action(s):**
-\`\`\`
-${actionSummary}
+### 🛣️ 3. Steps / Route to Reproduce
+1. Open **Cline Agent Loop Analyzer Dashboard** at \`http://localhost:8099/\`
+2. Select Task ID: **\`${taskId}\`**
+3. Navigate directly to Turn **${stepIndex}** ([Direct Link](${deepLink}))
+4. Inspect Turn Actions, Output trace, and Reasoning logs.
+
+### 🔴 4. Actual Result (What happened)
+\`\`\`text
+${actualResult}
 \`\`\`
 
 #### Agent Reasoning Excerpt:
-> ${reasoning.replace(/\n/g, '\n> ')}
+> ${reasoningExcerpt.replace(/\n/g, '\n> ')}
+
+### 🟢 5. Expected Result (What should happen)
+\`\`\`text
+${expectedResult}
+\`\`\`
+
+### 🖥️ 6. System & Context Information
+- **Task ID:** \`${taskId}\`
+- **AI Model:** \`${modelName}\`
+- **Execution Duration:** \`${durationSec}s\`
+- **Token Metrics:** Input \`${tokensIn.toLocaleString()}\` → Output \`${tokensOut.toLocaleString()}\` | Cache Read \`${cacheReads.toLocaleString()}\`
+- **Context Window:** \`${ctxWin}\`
+- **Trace Reference:** \`turns[${stepIndex}]\`
 
 ---
+*Reported via Cline Agent Loop Analyzer (QA Standard Format)*`;
 
-### 🔀 Expected vs. Actual Behavior
-
-| Expected Behavior | Actual Behavior |
-| :--- | :--- |
-| Agent executes turn step correctly without errors or abnormal metric spikes. | Abnormal behavior, failure, or threshold breach observed at Turn ${stepIndex}. |
-
----
-
-### 🛠️ Actionable Guidance for Dev
-- [ ] Inspect \`SKILL.md\` or prompt instructions relevant to this step.
-- [ ] Check command output / tool execution errors at Turn ${stepIndex}.
-- [ ] Verify if pre-conditions or context window limits caused thrashing.
-
----
-*Reported via Cline Agent Loop Analyzer*`;
-
-  openGitHubIssueSafely(title, body, 'bug,trace-fault');
+  openGitHubIssueSafely(title, body, 'bug,qa-report');
 }
 
-// Build and open GitHub Issue pre-fill URL for a specific Finding
+// Build and open QA-standardized GitHub Issue for a specific Finding
 function createGitHubIssueForFinding(findingId) {
   if (!flowData || !flowData.analysis || !flowData.analysis.findings) return;
   const f = flowData.analysis.findings.find(x => x.id === findingId);
@@ -1704,42 +1802,40 @@ function createGitHubIssueForFinding(findingId) {
   const firstTurnEv = f.evidence ? f.evidence.find(e => e.turn != null) : null;
   const deepLink = firstTurnEv ? `${baseUrl}#turn-${firstTurnEv.turn}` : `${baseUrl}#tab-analysis`;
 
-  const title = `[Analysis Finding ${f.id}]: ${f.title} (Task: ${taskId})`;
-  const body = `## ⚠️ [BUG/FAULT]: ${f.id} - ${f.title}
+  const title = `[QA Bug Report] [Finding ${f.id}] ${f.title}`;
+  const body = `## 🐛 [QA Bug Report] Finding ${f.id} - ${f.title}
 
-### 📌 Summary
-Finding **${f.id}** (${f.category}) detected with **${f.severity.toUpperCase()}** severity on Task **\`${taskId}\`**.
+### 📌 1. Bug Title
+**[QA Bug Report] [${f.id}] ${f.title}**
 
----
+### 📝 2. Problem Description
+Analysis Finding **${f.id}** (${f.category}) detected with **${f.severity.toUpperCase()}** severity on Task **\`${taskId}\`**.
+${f.detail ? `\n**Detail:** ${f.detail}\n` : ''}
 
-### 🔗 Context & Environment
+### 🛣️ 3. Steps / Route to Reproduce
+1. Open **Cline Agent Loop Analyzer Dashboard** at \`http://localhost:8099/\`
+2. Select Task ID: **\`${taskId}\`**
+3. Navigate to **Analysis Tab** or Evidence Link ([Direct Link](${deepLink}))
+4. Review trace evidence: ${f.evidence.map(e => `\`${e.ref}\``).join(', ')}.
+
+### 🔴 4. Actual Result (What happened)
+Finding triggered due to fault category **\`${f.category}\`** with severity **\`${f.severity}\`**.
+
+### 🟢 5. Expected Result (What should happen)
+\`\`\`text
+${f.suggestion || 'Workflow / Skill instructions execute cleanly without triggering analysis findings.'}
+\`\`\`
+
+### 🖥️ 6. System & Context Information
 - **Task ID:** \`${taskId}\`
-- **Model:** \`${modelName}\`
+- **AI Model:** \`${modelName}\`
 - **Category:** \`${f.category}\`
 - **Severity:** \`${f.severity}\`
-- **Deep Link:** [View Evidence in Dashboard](${deepLink})
 
 ---
+*Reported via Cline Agent Loop Analyzer (QA Standard Format)*`;
 
-### 📊 Finding Details & Evidence
-${f.detail ? `**Detail:** ${f.detail}\n` : ''}
-- **Evidence References:** ${f.evidence.map(e => `\`${e.ref}\``).join(', ')}
-
----
-
-### 💡 Suggested Recommendation
-> ${f.suggestion || 'Inspect referenced trace turns and update skill instructions.'}
-
----
-
-### 🛠️ Actionable Guidance for Dev
-- [ ] Review the referenced turns in the trace analyzer.
-- [ ] Update \`SKILL.md\` or workflow definitions to prevent recurrence.
-
----
-*Reported via Cline Agent Loop Analyzer*`;
-
-  openGitHubIssueSafely(title, body, 'bug,' + f.category);
+  openGitHubIssueSafely(title, body, 'bug,qa-finding,' + f.category);
 }
 
 window.jumpToTurn = jumpToTurn;
