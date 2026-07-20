@@ -157,5 +157,12 @@ const installer = template
 const installerPath = path.join(dist, 'cline-agent-installer.mjs');
 fs.writeFileSync(installerPath, installer, 'utf-8');
 
+const assetsDir = path.join(root, 'assets');
+if (fs.existsSync(assetsDir)) {
+  const assetsInstallerPath = path.join(assetsDir, 'cline-agent-installer.mjs');
+  fs.writeFileSync(assetsInstallerPath, installer, 'utf-8');
+  console.log(`Copied updated installer to assets/cline-agent-installer.mjs`);
+}
+
 const sizeKb = Math.round(fs.statSync(installerPath).size / 1024);
 console.log(`\nBuilt ${path.relative(root, installerPath)} (${sizeKb} KB) — share this one file.`);
