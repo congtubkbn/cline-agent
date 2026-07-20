@@ -3,6 +3,7 @@ import { extractIntent } from './intent.js';
 import { makeTextPolicy } from './text-policy.js';
 import { toMermaid } from './diagram.js';
 import { detectError, analyzeError } from './errors.js';
+import { buildMacroTurnsAndPhases } from './phases.js';
 
 // Cline appends a "# Context Window Usage" line to each request's
 // environment_details, e.g. "19,427 / 256K tokens used (8%)". It reflects the
@@ -106,8 +107,10 @@ export function buildFlow(run, { thresholdTokens = 200, perKind = {}, sink } = {
     totalCacheWrites: totals.cacheWrites
   };
 
+  const { macroTurns, phases } = buildMacroTurnsAndPhases(turns);
+
   return {
     taskId: run.taskId, model: run.model, prompt: run.prompt,
-    totals, stats, turns, completion, mermaid: toMermaid(turns)
+    totals, stats, turns, macroTurns, phases, completion, mermaid: toMermaid(turns)
   };
 }

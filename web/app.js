@@ -308,6 +308,8 @@ function setupEventListeners() {
         setTimeout(initMermaid, 50);
       } else if (btn.dataset.tab === 'analysis') {
         setTimeout(initFtaMermaid, 50);
+      } else if (btn.dataset.tab === 'vireport') {
+        loadViReport();
       }
     });
   });
@@ -1936,5 +1938,99 @@ function setupControlOverlay(container) {
       nameAttr: 'data-lucide',
       node: overlay
     });
+  }
+}
+
+// ===== Báo cáo Tiếng Việt Loader =====
+function renderTableHtml(headers, rows) {
+  let thHtml = headers.map(h => `<th>${h}</th>`).join('');
+  let trHtml = rows.map(r => {
+    let tdHtml = r.map(c => `<td>${c}</td>`).join('');
+    return `<tr>${tdHtml}</tr>`;
+  }).join('');
+
+  return `
+    <div class="vi-phase-table-card">
+      <div class="vi-table-wrapper">
+        <table class="vi-table">
+          <thead><tr>${thHtml}</tr></thead>
+          <tbody>${trHtml}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function renderMarkdownToHtml(md) {
+  if (!md) return '<p class="text-muted">Không có dữ liệu báo cáo.</p>';
+
+  const lines = md.split(/\r?\n/);
+  const processedLines = [];
+  let inTable = false;
+  let tableHeaders = [];
+  let tableRows = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line.startsWith('|') && line.endsWith('|')) {
+      if (!inTable) {
+        inTable = true;
+        tableHeaders = line.split('|').map(c => c.trim()).filter((c, idx, arr) => idx > 0 && idx < arr.length - 1);
+        tableRows = [];
+      } else if (/^\|[\s:\-\|]+\|$/.test(line)) {
+        // Skip separator line
+        continue;
+      } else {
+        const cells = line.split('|').map(c => c.trim()).filter((c, idx, arr) => idx > 0 && idx < arr.length - 1);
+        tableRows.push(cells);
+      }
+    } else {
+      if (inTable) {
+        processedLines.push(renderTableHtml(tableHeaders, tableRows));
+        inTable = false;
+        tableHeaders = [];
+        tableRows = [];
+      }
+      processedLines.push(line);
+    }
+  }
+  if (inTable) {
+    processedLines.push(renderTableHtml(tableHeaders, tableRows));
+  }
+
+  let text = processedLines.join('\n');
+
+  let html = text
+    .replace(/^# (.*$)/gim, '<h1 style="color:var(--cyan);margin-top:10px;margin-bottom:16px;">$1</h1>')
+    .replace(/^## (.*$)/gim, '<h2 style="color:var(--text-main);margin-top:24px;margin-bottom:12px;border-bottom:1px solid var(--border-color);padding-bottom:6px;">$1</h2>')
+    .replace(/^### (.*$)/gim, '<h3 style="color:var(--indigo);margin-top:16px;margin-bottom:8px;">$1</h3>')
+    .replace(/^#### (.*$)/gim, '<h4 style="margin-top:12px;margin-bottom:6px;">$1</h4>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code style="background:var(--fill-05);padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:12px;">$1</code>')
+    .replace(/```([\s\S]*?)```/g, '<pre style="background:var(--code-bg);padding:14px;border-radius:8px;overflow-x:auto;border:1px solid var(--border-color);"><code style="font-family:var(--font-mono);">$1</code></pre>')
+    .replace(/^\- (.*$)/gim, '<li style="margin-left:20px;margin-bottom:4px;">$1</li>')
+    .replace(/^\* (.*$)/gim, '<li style="margin-left:20px;margin-bottom:4px;">$1</li>')
+    .replace(/✅ Thành công/g, '<span class="vi-badge vi-badge-success">✅ Thành công</span>')
+    .replace(/❌ Có lỗi/g, '<span class="vi-badge vi-badge-error">❌ Có lỗi</span>')
+    .replace(/\n\n/g, '<br/>');
+
+  return `<div class="vireport-container">${html}</div>`;
+}
+
+async function loadViReport() {
+  const container = document.getElementById('vireport-content');
+  if (!container) return;
+  try {
+    const taskPath = currentTaskId ? `tasks/${encodeURIComponent(currentTaskId)}/bao_cao_chi_tiet.md` : 'bao_cao_chi_tiet.md';
+    const res = await fetch(taskPath);
+    if (!res.ok) {
+      container.innerHTML = '<p class="text-muted">Chưa tìm thấy file báo cáo Tiếng Việt cho task này. Hãy chạy lại parser để khởi tạo.</p>';
+      return;
+    }
+    const text = await res.text();
+    container.innerHTML = renderMarkdownToHtml(text);
+  } catch (err) {
+    container.innerHTML = `<p class="text-danger">Lỗi khi tải báo cáo: ${err.message}</p>`;
   }
 }

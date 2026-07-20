@@ -12,6 +12,7 @@ export function groupTurns(events) {
     if (e.subtype === 'task' && turns.length === 0) {
       cur = {
         index: turns.length,
+        isUserInitiated: true,
         tsStart: e.ts, tsEnd: e.ts, durationMs: 0, idleMs: 0,
         request: { ts: e.ts, data: {}, text: e.text },
         reasoning: null,
@@ -36,6 +37,7 @@ export function groupTurns(events) {
       } else {
         cur = {
           index: turns.length,
+          isUserInitiated: false,
           tsStart: e.ts, tsEnd: e.ts, durationMs: 0, idleMs: 0,
           request: { ts: e.ts, data: e.data || {}, text: e.text },
           reasoning: null,
@@ -54,6 +56,7 @@ export function groupTurns(events) {
     if (!cur) continue; // skip pre-LLM events if 'task' wasn't present
     if (e.subtype === 'user_feedback' || e.subtype === 'resume_task' || e.subtype === 'resume_completed_task') {
       cur.idleMs += Math.max(0, e.ts - lastEventTs);
+      cur.isUserInitiated = true;
     } else {
       cur.tsEnd = e.ts;
       cur.durationMs = Math.max(0, (cur.tsEnd - cur.tsStart) - cur.idleMs);
