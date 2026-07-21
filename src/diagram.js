@@ -1,3 +1,13 @@
+import { buildMacroTurnsAndPhases } from './phases.js';
+
+function sanitize(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/["'\[\]\(\)\{\}\<\>\\:\r\n]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function pathBasename(p) {
   if (!p) return '';
   p = String(p).replace(/\\/g, '/');
@@ -33,8 +43,9 @@ function turnLabel(t) {
   const acts = (t.actions || []).map(a => {
     const name = a.kind === 'tool' ? (a.what.tool || 'tool') : 'cmd';
     const param = getActionParam(a);
-    const shortParam = param && param.length > 25 ? param.slice(0, 22) + '...' : param;
-    return shortParam ? `${name}(${shortParam})` : name;
+    const cleanParam = sanitize(param);
+    const shortParam = cleanParam && cleanParam.length > 20 ? cleanParam.slice(0, 18) + '..' : cleanParam;
+    return shortParam ? `${name} ${shortParam}` : name;
   });
   
   const head = acts.length ? acts.join(', ') : 'no-action';
@@ -46,43 +57,78 @@ function turnLabel(t) {
     summary = typeof t.reasoning === 'string' ? t.reasoning : (t.reasoning.preview || '');
   }
   
-  if (summary) {
-    summary = String(summary)
-      .replace(/"/g, "'")
-      .replace(/[\n\r]/g, ' ')
-      .trim();
-    if (summary.length > 50) {
-      summary = summary.slice(0, 47) + '...';
+  const cleanSummary = sanitize(summary);
+  const shortSummary = cleanSummary.length > 35 ? cleanSummary.slice(0, 32) + '...' : cleanSummary;
+
+  const req = t.request || {};
+  const durSec = Math.round((t.durationMs || 0) / 1000);
+  const toks = `${req.tokensIn || 0} in`;
+
+  const statusPrefix = t.hasError ? '❌ ' : '';
+  const title = `${statusPrefix}Turn ${t.index}: ${head}`;
+
+  if (shortSummary) {
+    return `${title} - ${shortSummary} (${durSec}s, ${toks})`;
+  } else {
+    return `${title} (${durSec}s, ${toks})`;
+  }
+}
+
+const PHASE_ICONS = {
+  'Initialization & Skill Activation': 'Init and Skills',
+  'Exploration & Context Gathering': 'Exploration and Context',
+  'Implementation & Modification': 'Implementation',
+  'Browser & Terminal Execution': 'Execution and Command',
+  'Artifact Generation & Render': 'Artifact and Render',
+  'Task Completion & Wrap-up': 'Task Completion',
+  'General Execution': 'Execution Phase'
+};
+
+export function toMermaid(turns, options = {}) {
+  const orientation = (options.orientation || 'TD').toUpperCase();
+  const lines = [`flowchart ${orientation}`];
+
+  lines.push('  START([task prompt])');
+
+  if (!turns || !turns.length) {
+    lines.push('  START --> DONE([completion])');
+    return lines.join('\n');
+  }
+
+  // Build semantic phases
+  const { phases } = buildMacroTurnsAndPhases(turns);
+
+  if (phases && phases.length > 0) {
+    for (let pIdx = 0; pIdx < phases.length; pIdx++) {
+      const p = phases[pIdx];
+      const nameClean = sanitize(PHASE_ICONS[p.name] || p.name || 'Phase');
+      const durSec = Math.round((p.durationMs || 0) / 1000);
+      lines.push(`  subgraph Phase_${pIdx} ["${nameClean} - ${p.turnCount} turns, ${durSec}s"]`);
+      
+      const startTurn = p.turnRange[0];
+      const endTurn = p.turnRange[1];
+      for (let i = startTurn; i <= endTurn; i++) {
+        const t = turns.find(x => x.index === i);
+        if (t) {
+          lines.push(`    T${t.index}["${turnLabel(t)}"]`);
+        }
+      }
+      lines.push('  end');
+    }
+  } else {
+    for (const t of turns) {
+      lines.push(`  T${t.index}["${turnLabel(t)}"]`);
     }
   }
 
-  const turnText = t.hasError ? `❌ Turn ${t.index}` : `Turn ${t.index}`;
-  const escHead = String(head).replace(/"/g, "'").replace(/[\n\r]/g, ' ');
-  const stats = turnStats(t);
-
-  if (summary) {
-    return `${turnText}: ${escHead}\\n(${summary})\\n${stats}`;
-  } else {
-    return `${turnText}: ${escHead}\\n${stats}`;
+  // Connections between nodes
+  lines.push(`  START --> T${turns[0].index}`);
+  for (let i = 0; i < turns.length - 1; i++) {
+    const tCurrent = turns[i];
+    const tNext = turns[i + 1];
+    lines.push(`  T${tCurrent.index} --> T${tNext.index}`);
   }
-}
+  lines.push(`  T${turns[turns.length - 1].index} --> DONE([completion])`);
 
-// Compact per-turn basics for the flow diagram: duration, tokens in→out,
-// and context window %. Lets a reader check a turn's vitals from the graph.
-function turnStats(t) {
-  const req = t.request || {};
-  const dur = `+${Math.round((t.durationMs || 0) / 1000)}s`;
-  const toks = `${req.tokensIn || 0}→${req.tokensOut || 0} tok`;
-  const ctx = req.contextWindow ? ` · ctx ${req.contextWindow.percent}%` : '';
-  return `⏱ ${dur} · ${toks}${ctx}`;
-}
-
-export function toMermaid(turns) {
-  const lines = ['flowchart TD'];
-  lines.push('  START([task prompt])');
-  for (const t of turns) lines.push(`  T${t.index}["${turnLabel(t)}"]`);
-  if (turns.length) lines.push(`  START --> T${turns[0].index}`);
-  for (let i = 0; i < turns.length - 1; i++) lines.push(`  T${turns[i].index} --> T${turns[i + 1].index}`);
-  if (turns.length) lines.push(`  T${turns[turns.length - 1].index} --> DONE([completion])`);
   return lines.join('\n');
 }

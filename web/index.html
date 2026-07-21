@@ -350,14 +350,33 @@
           <!-- Tab: Mermaid Diagram -->
           <div class="tab-pane" id="tab-mermaid">
             <div class="mermaid-layout">
-              <div class="mermaid-controls">
-                <button class="btn btn-secondary" id="btn-render-mmd"><i data-lucide="refresh-cw"></i> Refresh Flowchart</button>
+              <div class="mermaid-controls" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;">
+                <!-- Orientation Switcher -->
+                <div style="display: flex; gap: 4px; background: var(--fill-02); padding: 3px; border-radius: 8px; border: 1px solid var(--border-color);">
+                  <button class="btn btn-sm btn-secondary active" id="btn-orient-td" style="font-weight: 600; padding: 4px 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px;"><i data-lucide="arrow-down" style="width: 14px; height: 14px;"></i> Top-Down (TD)</button>
+                  <button class="btn btn-sm btn-secondary" id="btn-orient-lr" style="font-weight: 600; padding: 4px 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px;"><i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i> Left-Right (LR)</button>
+                </div>
+
+                <!-- Pan & Zoom Controls -->
+                <div style="display: flex; gap: 4px; background: var(--fill-02); padding: 3px; border-radius: 8px; border: 1px solid var(--border-color);">
+                  <button class="btn btn-sm btn-secondary" id="btn-zoom-in" title="Zoom In" style="padding: 4px 8px; border-radius: 6px; cursor: pointer;"><i data-lucide="zoom-in" style="width: 14px; height: 14px;"></i></button>
+                  <button class="btn btn-sm btn-secondary" id="btn-zoom-out" title="Zoom Out" style="padding: 4px 8px; border-radius: 6px; cursor: pointer;"><i data-lucide="zoom-out" style="width: 14px; height: 14px;"></i></button>
+                  <button class="btn btn-sm btn-secondary" id="btn-zoom-reset" title="Fit to Screen" style="font-weight: 500; padding: 4px 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px;"><i data-lucide="maximize-2" style="width: 14px; height: 14px;"></i> Fit Screen</button>
+                </div>
+
+                <button class="btn btn-secondary btn-sm" id="btn-render-mmd" style="display: flex; align-items: center; gap: 6px;"><i data-lucide="refresh-cw"></i> Refresh</button>
+
+                <span style="font-size: 11px; color: var(--text-muted); margin-left: auto; display: flex; align-items: center; gap: 4px;">
+                  <i data-lucide="mouse-pointer-click" style="width: 12px; height: 12px; color: var(--indigo);"></i> Bấm vào node để chuyển sang Turn tương ứng | Kéo rê để Pan, lăn chuột để Zoom
+                </span>
               </div>
-              <div class="mermaid-render-box">
-                <pre class="mermaid" id="mermaid-code">
-                  flowchart TD
-                    START([task prompt]) --> DONE([completion])
-                </pre>
+              <div class="mermaid-render-box" style="position: relative; overflow: hidden; height: calc(100vh - 220px); min-height: 500px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; cursor: grab;">
+                <div id="mermaid-viewport" style="width: 100%; height: 100%; transform-origin: 0 0; transition: transform 0.05s ease-out;">
+                  <pre class="mermaid" id="mermaid-code">
+                    flowchart TD
+                      START([task prompt]) --> DONE([completion])
+                  </pre>
+                </div>
               </div>
             </div>
           </div>

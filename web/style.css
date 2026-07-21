@@ -1255,17 +1255,21 @@ input[type=range]::-webkit-slider-thumb:hover {
   cursor: grabbing;
 }
 
-.mermaid-render-box.is-dragging svg {
-  transition: none !important;
-}
-
-.mermaid-render-box svg {
-  max-width: none !important;
-  max-height: none !important;
-  transition: transform 0.1s cubic-bezier(0.1, 0.8, 0.3, 1);
-}
-
 /* Mermaid Zoom & Pan Overlay controls */
+.mermaid-controls button.active {
+  background: var(--indigo) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+}
+
+/* Hover effects for node elements in flowchart */
+.mermaid .node {
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.mermaid .node:hover {
+  filter: brightness(1.08) drop-shadow(0 4px 8px rgba(0,0,0,0.15));
+}
 .zoom-controls-overlay {
   position: absolute;
   bottom: 16px;

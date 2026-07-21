@@ -398,6 +398,45 @@ function setupEventListeners() {
   // Render FTA diagram button
   document.getElementById('btn-render-fta').addEventListener('click', initFtaMermaid);
 
+  // Orientation Switcher & Zoom Controls for Flowchart
+  const btnOrientTD = document.getElementById('btn-orient-td');
+  const btnOrientLR = document.getElementById('btn-orient-lr');
+  const mmdRenderBox = document.querySelector('#tab-mermaid .mermaid-render-box');
+  const btnZoomIn = document.getElementById('btn-zoom-in');
+  const btnZoomOut = document.getElementById('btn-zoom-out');
+  const btnZoomReset = document.getElementById('btn-zoom-reset');
+
+  if (btnOrientTD && btnOrientLR) {
+    btnOrientTD.addEventListener('click', () => {
+      btnOrientTD.classList.add('active');
+      btnOrientLR.classList.remove('active');
+      currentFlowchartOrientation = 'TD';
+      initMermaid();
+    });
+    btnOrientLR.addEventListener('click', () => {
+      btnOrientLR.classList.add('active');
+      btnOrientTD.classList.remove('active');
+      currentFlowchartOrientation = 'LR';
+      initMermaid();
+    });
+  }
+
+  if (btnZoomIn && mmdRenderBox) {
+    btnZoomIn.addEventListener('click', () => {
+      if (mmdRenderBox.zoomIn) mmdRenderBox.zoomIn();
+    });
+  }
+  if (btnZoomOut && mmdRenderBox) {
+    btnZoomOut.addEventListener('click', () => {
+      if (mmdRenderBox.zoomOut) mmdRenderBox.zoomOut();
+    });
+  }
+  if (btnZoomReset && mmdRenderBox) {
+    btnZoomReset.addEventListener('click', () => {
+      if (mmdRenderBox.resetZoom) mmdRenderBox.resetZoom();
+    });
+  }
+
   // Settings Modal Events
   const settingsModal = document.getElementById('settings-modal');
   const btnSettingsOpen = document.getElementById('btn-settings-open');
@@ -2084,15 +2123,48 @@ function initFtaMermaid() {
   }
 }
 
+let currentFlowchartOrientation = 'TD';
+
+function attachMermaidNodeClickHandlers(container) {
+  if (!container) return;
+  const nodes = container.querySelectorAll('.node');
+  nodes.forEach(node => {
+    const text = node.textContent || '';
+    const match = text.match(/Turn\s+(\d+)/i) || (node.id && node.id.match(/T(\d+)/));
+    if (match) {
+      const stepIdx = parseInt(match[1], 10);
+      node.style.cursor = 'pointer';
+      node.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (typeof setCurrentStep === 'function') {
+          setCurrentStep(stepIdx);
+        }
+        const tabBtn = document.querySelector('.tab-btn[data-tab="simulator"]');
+        if (tabBtn) tabBtn.click();
+      });
+    }
+  });
+}
+
 // Render Mermaid Diagram
 function initMermaid() {
   if (!flowData || !flowData.mermaid) return;
   const mermaidBox = document.getElementById('mermaid-code');
+  if (!mermaidBox) return;
+
+  let mmd = flowData.mermaid || '';
+  if (currentFlowchartOrientation === 'LR') {
+    mmd = mmd.replace(/^flowchart TD/m, 'flowchart LR');
+  } else {
+    mmd = mmd.replace(/^flowchart LR/m, 'flowchart TD');
+  }
+
   mermaidBox.removeAttribute('data-processed');
-  mermaidBox.textContent = flowData.mermaid;
+  mermaidBox.textContent = mmd;
   try {
     mermaid.init(undefined, mermaidBox);
-    
+    attachMermaidNodeClickHandlers(mermaidBox);
+
     // Reset zoom after rendering new diagram
     const mmdContainer = document.querySelector('#tab-mermaid .mermaid-render-box');
     if (mmdContainer && mmdContainer.resetZoom) mmdContainer.resetZoom();
