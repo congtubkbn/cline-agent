@@ -383,12 +383,26 @@
 
     <!-- Sidecar File Reader Modal -->
     <div class="modal" id="sidecar-modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3><i data-lucide="file-text"></i> View Sidecar File</h3>
+      <div class="modal-content" style="max-width: 850px;">
+        <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+          <h3 style="display: flex; align-items: center; gap: 8px; margin: 0; white-space: nowrap; font-size: 15px;">
+            <i data-lucide="file-text"></i> View Sidecar File
+          </h3>
+          <!-- Search Toolbar inside Modal Header -->
+          <div style="display: flex; align-items: center; gap: 8px; flex: 1; max-width: 440px; margin-left: auto; margin-right: 12px;">
+            <div style="position: relative; width: 100%; display: flex; align-items: center;">
+              <i data-lucide="search" style="position: absolute; left: 10px; width: 14px; height: 14px; color: var(--text-muted); pointer-events: none;"></i>
+              <input type="text" id="sidecar-search-input" placeholder="Search in sidecar file... (Ctrl+F)" style="width: 100%; background: var(--input-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 6px 10px 6px 30px; border-radius: 6px; font-size: 12px; font-family: var(--font-mono); outline: none;">
+            </div>
+            <span id="sidecar-search-count" style="font-size: 11px; font-weight: 600; color: var(--text-muted); white-space: nowrap; min-width: 45px; text-align: center;">0 / 0</span>
+            <div style="display: flex; gap: 4px;">
+              <button class="btn btn-secondary btn-sm" id="btn-sidecar-search-prev" title="Previous match (Shift+Enter)" style="padding: 5px 8px; border-radius: 4px; cursor: pointer; display: flex; align-items: center;"><i data-lucide="chevron-up"></i></button>
+              <button class="btn btn-secondary btn-sm" id="btn-sidecar-search-next" title="Next match (Enter)" style="padding: 5px 8px; border-radius: 4px; cursor: pointer; display: flex; align-items: center;"><i data-lucide="chevron-down"></i></button>
+            </div>
+          </div>
           <button class="modal-close" id="btn-close-modal"><i data-lucide="x"></i></button>
         </div>
-        <div class="modal-body scrollable-y">
+        <div class="modal-body scrollable-y" style="max-height: 72vh;">
           <pre class="code-font" id="sidecar-file-content">Loading...</pre>
         </div>
       </div>

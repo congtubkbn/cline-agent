@@ -350,6 +350,48 @@ function setupEventListeners() {
     }
   });
 
+  // Sidecar search event listeners
+  const sidecarSearchInput = document.getElementById('sidecar-search-input');
+  const btnSidecarSearchPrev = document.getElementById('btn-sidecar-search-prev');
+  const btnSidecarSearchNext = document.getElementById('btn-sidecar-search-next');
+
+  if (sidecarSearchInput) {
+    sidecarSearchInput.addEventListener('input', () => {
+      currentSidecarSearchIndex = 0;
+      updateSidecarSearch();
+    });
+    sidecarSearchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          prevSidecarMatch();
+        } else {
+          nextSidecarMatch();
+        }
+      }
+    });
+  }
+
+  if (btnSidecarSearchPrev) {
+    btnSidecarSearchPrev.addEventListener('click', prevSidecarMatch);
+  }
+  if (btnSidecarSearchNext) {
+    btnSidecarSearchNext.addEventListener('click', nextSidecarMatch);
+  }
+
+  // Ctrl+F shortcut inside Sidecar Modal
+  window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+      if (sidecarModal && sidecarModal.classList.contains('active')) {
+        e.preventDefault();
+        if (sidecarSearchInput) {
+          sidecarSearchInput.focus();
+          sidecarSearchInput.select();
+        }
+      }
+    }
+  });
+
   // Render Mermaid button
   document.getElementById('btn-render-mmd').addEventListener('click', initMermaid);
 
@@ -1326,9 +1368,101 @@ function updateActiveStepDetails() {
   lucide.createIcons();
 }
 
+// Sidecar Modal Search Logic
+let currentSidecarRawText = '';
+let sidecarSearchMatches = [];
+let currentSidecarSearchIndex = -1;
+
+function updateSidecarSearch() {
+  const input = document.getElementById('sidecar-search-input');
+  const countSpan = document.getElementById('sidecar-search-count');
+  const container = document.getElementById('sidecar-file-content');
+  if (!container || !input) return;
+
+  const query = input.value;
+  if (!query || !currentSidecarRawText) {
+    container.textContent = currentSidecarRawText;
+    if (countSpan) countSpan.textContent = '0 / 0';
+    sidecarSearchMatches = [];
+    currentSidecarSearchIndex = -1;
+    return;
+  }
+
+  let regex;
+  try {
+    regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+  } catch (e) {
+    container.textContent = currentSidecarRawText;
+    if (countSpan) countSpan.textContent = '0 / 0';
+    return;
+  }
+
+  let match;
+  const matches = [];
+  while ((match = regex.exec(currentSidecarRawText)) !== null) {
+    matches.push({ start: match.index, end: match.index + match[0].length });
+  }
+
+  if (matches.length === 0) {
+    container.textContent = currentSidecarRawText;
+    if (countSpan) countSpan.textContent = '0 / 0';
+    sidecarSearchMatches = [];
+    currentSidecarSearchIndex = -1;
+    return;
+  }
+
+  if (currentSidecarSearchIndex < 0 || currentSidecarSearchIndex >= matches.length) {
+    currentSidecarSearchIndex = 0;
+  }
+
+  sidecarSearchMatches = matches;
+  if (countSpan) {
+    countSpan.textContent = `${currentSidecarSearchIndex + 1} / ${matches.length}`;
+  }
+
+  let html = '';
+  let lastIdx = 0;
+  for (let i = 0; i < matches.length; i++) {
+    const m = matches[i];
+    html += escapeHtml(currentSidecarRawText.slice(lastIdx, m.start));
+    const matchText = escapeHtml(currentSidecarRawText.slice(m.start, m.end));
+    const activeClass = i === currentSidecarSearchIndex ? 'active-search-match' : '';
+    html += `<mark class="search-highlight ${activeClass}" id="sidecar-match-${i}">${matchText}</mark>`;
+    lastIdx = m.end;
+  }
+  html += escapeHtml(currentSidecarRawText.slice(lastIdx));
+  container.innerHTML = html;
+
+  const activeEl = document.getElementById(`sidecar-match-${currentSidecarSearchIndex}`);
+  if (activeEl) {
+    activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+function nextSidecarMatch() {
+  if (sidecarSearchMatches.length === 0) return;
+  currentSidecarSearchIndex = (currentSidecarSearchIndex + 1) % sidecarSearchMatches.length;
+  updateSidecarSearch();
+}
+
+function prevSidecarMatch() {
+  if (sidecarSearchMatches.length === 0) return;
+  currentSidecarSearchIndex = (currentSidecarSearchIndex - 1 + sidecarSearchMatches.length) % sidecarSearchMatches.length;
+  updateSidecarSearch();
+}
+
 // Fetch sidecar content and open modal
 async function openSidecarModal(sidecarPath) {
   sidecarFileContent.textContent = 'Loading sidecar file content...';
+  currentSidecarRawText = '';
+  sidecarSearchMatches = [];
+  currentSidecarSearchIndex = -1;
+
+  const searchInput = document.getElementById('sidecar-search-input');
+  const countSpan = document.getElementById('sidecar-search-count');
+  if (searchInput) searchInput.value = '';
+  if (countSpan) countSpan.textContent = '0 / 0';
+
   sidecarModal.classList.add('active');
   const targetUrl = currentTaskId 
     ? `./tasks/${encodeURIComponent(currentTaskId)}/${sidecarPath}`
@@ -1337,7 +1471,9 @@ async function openSidecarModal(sidecarPath) {
     const res = await fetch(targetUrl);
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     const text = await res.text();
+    currentSidecarRawText = text;
     sidecarFileContent.textContent = text;
+    if (window.lucide) lucide.createIcons();
   } catch (e) {
     console.error('Error reading sidecar file:', e);
     sidecarFileContent.textContent = `Error: Failed to load sidecar file at ${targetUrl}\nThe file might not have been created or the path is incorrect.`;
