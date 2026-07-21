@@ -1720,10 +1720,6 @@ function openGitHubIssueSafely(title, bodyInput, labels = 'bug', taskId = null) 
 
     const handleOpen = () => {
       const { issueUrl } = updateModalDisplay();
-      const isAttached = chkAttachJson ? chkAttachJson.checked : false;
-      if (isAttached && currentTask) {
-        downloadUiMessages(currentTask);
-      }
       window.open(issueUrl, '_blank');
       previewModal.classList.remove('active');
       cleanupListeners();
