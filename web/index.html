@@ -416,15 +416,29 @@
             </div>
           </div>
           <div class="threshold-group-token">
-            <h4 style="font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Tokens In (Input Tokens)</h4>
+            <h4 style="font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">New Tokens In (Delta / Turn)</h4>
             <div style="display: flex; gap: 16px;">
               <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
-                <label for="set-token-warning" style="font-size: 12px; font-weight: 500; color: var(--text-main);">Warning Threshold</label>
-                <input type="number" id="set-token-warning" min="1" step="1000" value="5000" style="background: var(--input-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 14px; outline: none;">
+                <label for="set-token-warning" style="font-size: 12px; font-weight: 500; color: var(--text-main);">Warning Threshold (Delta)</label>
+                <input type="number" id="set-token-warning" min="100" step="500" value="4000" style="background: var(--input-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 14px; outline: none;">
               </div>
               <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
-                <label for="set-token-error" style="font-size: 12px; font-weight: 500; color: var(--text-main);">Error Threshold</label>
-                <input type="number" id="set-token-error" min="1" step="1000" value="10000" style="background: var(--input-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 14px; outline: none;">
+                <label for="set-token-error" style="font-size: 12px; font-weight: 500; color: var(--text-main);">Error Threshold (Delta)</label>
+                <input type="number" id="set-token-error" min="100" step="500" value="10000" style="background: var(--input-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 14px; outline: none;">
+              </div>
+            </div>
+          </div>
+
+          <div class="threshold-group-context-cap">
+            <h4 style="font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Total Context Saturation (%)</h4>
+            <div style="display: flex; gap: 16px;">
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+                <label for="set-context-cap-warning" style="font-size: 12px; font-weight: 500; color: var(--text-main);">Warning Threshold (%)</label>
+                <input type="number" id="set-context-cap-warning" min="1" max="100" step="5" value="80" style="background: var(--input-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 14px; outline: none;">
+              </div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+                <label for="set-context-cap-error" style="font-size: 12px; font-weight: 500; color: var(--text-main);">Error Threshold (%)</label>
+                <input type="number" id="set-context-cap-error" min="1" max="100" step="5" value="90" style="background: var(--input-bg); color: var(--text-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 14px; outline: none;">
               </div>
             </div>
           </div>
@@ -443,8 +457,15 @@
               <label class="toggle-row" for="set-enable-token">
                 <input type="checkbox" id="set-enable-token" checked>
                 <span class="toggle-label">
-                  <strong>Token In</strong>
-                  <small>Flag turns vượt ngưỡng input tokens</small>
+                  <strong>Delta Token Spike</strong>
+                  <small>Flag turns vượt ngưỡng token tăng mới (Delta / Turn)</small>
+                </span>
+              </label>
+              <label class="toggle-row" for="set-enable-context-cap">
+                <input type="checkbox" id="set-enable-context-cap" checked>
+                <span class="toggle-label">
+                  <strong>Context Saturation (%)</strong>
+                  <small>Flag turns khi tổng context chạm ngưỡng % dung lượng window</small>
                 </span>
               </label>
               <label class="toggle-row" for="set-enable-errors">

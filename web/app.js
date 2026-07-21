@@ -19,11 +19,14 @@ let currentSearchQuery = '';
 let thresholdSettings = {
   timeWarning: 30,
   timeError: 90,
-  tokenWarning: 5000,
+  tokenWarning: 4000,
   tokenError: 10000,
+  contextCapWarning: 80,
+  contextCapError: 90,
   // Error source toggles — which sources contribute to Warning/Error counts
   enableTimeThreshold: true,
   enableTokenThreshold: true,
+  enableContextCapThreshold: true,
   enableParserErrors: true,
   githubHost: 'https://github.com', // Default host
   githubRepo: '' // Default empty
@@ -364,8 +367,12 @@ function setupEventListeners() {
   const setTimeError = document.getElementById('set-time-error');
   const setTokenWarning = document.getElementById('set-token-warning');
   const setTokenError = document.getElementById('set-token-error');
+  const setContextCapWarning = document.getElementById('set-context-cap-warning');
+  const setContextCapError = document.getElementById('set-context-cap-error');
+
   const setEnableTime = document.getElementById('set-enable-time');
   const setEnableToken = document.getElementById('set-enable-token');
+  const setEnableContextCap = document.getElementById('set-enable-context-cap');
   const setEnableErrors = document.getElementById('set-enable-errors');
   const setGithubHost = document.getElementById('set-github-host');
   const setGithubRepo = document.getElementById('set-github-repo');
@@ -374,28 +381,38 @@ function setupEventListeners() {
   function syncThresholdDisabledState() {
     const timeOff = setEnableTime && !setEnableTime.checked;
     const tokenOff = setEnableToken && !setEnableToken.checked;
+    const contextCapOff = setEnableContextCap && !setEnableContextCap.checked;
+
     [setTimeWarning, setTimeError].forEach(el => { if (el) el.disabled = timeOff; });
     [setTokenWarning, setTokenError].forEach(el => { if (el) el.disabled = tokenOff; });
+    [setContextCapWarning, setContextCapError].forEach(el => { if (el) el.disabled = contextCapOff; });
+
     document.querySelectorAll('.threshold-group-time').forEach(el => el.classList.toggle('source-disabled', timeOff));
     document.querySelectorAll('.threshold-group-token').forEach(el => el.classList.toggle('source-disabled', tokenOff));
+    document.querySelectorAll('.threshold-group-context-cap').forEach(el => el.classList.toggle('source-disabled', contextCapOff));
   }
 
-  if (setEnableTime)  setEnableTime.addEventListener('change',  syncThresholdDisabledState);
-  if (setEnableToken) setEnableToken.addEventListener('change', syncThresholdDisabledState);
+  if (setEnableTime)       setEnableTime.addEventListener('change',       syncThresholdDisabledState);
+  if (setEnableToken)      setEnableToken.addEventListener('change',      syncThresholdDisabledState);
+  if (setEnableContextCap) setEnableContextCap.addEventListener('change', syncThresholdDisabledState);
 
   if (btnSettingsOpen && settingsModal) {
     btnSettingsOpen.addEventListener('click', () => {
       // Load current threshold values into inputs
-      setTimeWarning.value = thresholdSettings.timeWarning;
-      setTimeError.value = thresholdSettings.timeError;
-      setTokenWarning.value = thresholdSettings.tokenWarning;
-      setTokenError.value = thresholdSettings.tokenError;
+      if (setTimeWarning)       setTimeWarning.value       = thresholdSettings.timeWarning;
+      if (setTimeError)         setTimeError.value         = thresholdSettings.timeError;
+      if (setTokenWarning)       setTokenWarning.value       = thresholdSettings.tokenWarning;
+      if (setTokenError)         setTokenError.value         = thresholdSettings.tokenError;
+      if (setContextCapWarning) setContextCapWarning.value = thresholdSettings.contextCapWarning;
+      if (setContextCapError)   setContextCapError.value   = thresholdSettings.contextCapError;
+
       // Load toggle states and github repo/host
-      if (setEnableTime)   setEnableTime.checked   = thresholdSettings.enableTimeThreshold;
-      if (setEnableToken)  setEnableToken.checked  = thresholdSettings.enableTokenThreshold;
-      if (setEnableErrors) setEnableErrors.checked = thresholdSettings.enableParserErrors;
-      if (setGithubHost)   setGithubHost.value     = thresholdSettings.githubHost || 'https://github.com';
-      if (setGithubRepo)   setGithubRepo.value     = thresholdSettings.githubRepo || '';
+      if (setEnableTime)       setEnableTime.checked       = thresholdSettings.enableTimeThreshold;
+      if (setEnableToken)      setEnableToken.checked      = thresholdSettings.enableTokenThreshold;
+      if (setEnableContextCap) setEnableContextCap.checked = thresholdSettings.enableContextCapThreshold !== false;
+      if (setEnableErrors)     setEnableErrors.checked     = thresholdSettings.enableParserErrors;
+      if (setGithubHost)       setGithubHost.value         = thresholdSettings.githubHost || 'https://github.com';
+      if (setGithubRepo)       setGithubRepo.value         = thresholdSettings.githubRepo || '';
       syncThresholdDisabledState();
       settingsModal.classList.add('active');
     });
@@ -415,16 +432,20 @@ function setupEventListeners() {
 
   if (btnSettingsSave && settingsModal) {
     btnSettingsSave.addEventListener('click', () => {
-      thresholdSettings.timeWarning = parseInt(setTimeWarning.value, 10) || 30;
-      thresholdSettings.timeError = parseInt(setTimeError.value, 10) || 90;
-      thresholdSettings.tokenWarning = parseInt(setTokenWarning.value, 10) || 5000;
-      thresholdSettings.tokenError = parseInt(setTokenError.value, 10) || 10000;
+      thresholdSettings.timeWarning       = parseInt(setTimeWarning.value, 10)       || 30;
+      thresholdSettings.timeError         = parseInt(setTimeError.value, 10)         || 90;
+      thresholdSettings.tokenWarning       = parseInt(setTokenWarning.value, 10)       || 4000;
+      thresholdSettings.tokenError         = parseInt(setTokenError.value, 10)       || 10000;
+      thresholdSettings.contextCapWarning = parseInt(setContextCapWarning.value, 10) || 80;
+      thresholdSettings.contextCapError   = parseInt(setContextCapError.value, 10)   || 90;
+
       // Save toggle states and github repo/host
-      thresholdSettings.enableTimeThreshold  = setEnableTime   ? setEnableTime.checked   : true;
-      thresholdSettings.enableTokenThreshold = setEnableToken  ? setEnableToken.checked  : true;
-      thresholdSettings.enableParserErrors   = setEnableErrors ? setEnableErrors.checked : true;
-      thresholdSettings.githubHost           = setGithubHost   ? setGithubHost.value.trim() : 'https://github.com';
-      thresholdSettings.githubRepo           = setGithubRepo   ? setGithubRepo.value.trim() : '';
+      thresholdSettings.enableTimeThreshold       = setEnableTime       ? setEnableTime.checked       : true;
+      thresholdSettings.enableTokenThreshold      = setEnableToken      ? setEnableToken.checked      : true;
+      thresholdSettings.enableContextCapThreshold = setEnableContextCap ? setEnableContextCap.checked : true;
+      thresholdSettings.enableParserErrors        = setEnableErrors     ? setEnableErrors.checked     : true;
+      thresholdSettings.githubHost                = setGithubHost       ? setGithubHost.value.trim() : 'https://github.com';
+      thresholdSettings.githubRepo                = setGithubRepo       ? setGithubRepo.value.trim() : '';
 
       try {
         localStorage.setItem('analyzerThresholds', JSON.stringify(thresholdSettings));
@@ -434,22 +455,26 @@ function setupEventListeners() {
 
       settingsModal.classList.remove('active');
       
-      // Re-apply timeline filters since threshold values changed
-      applyTimelineFilter();
+      // Re-apply timeline filters & re-render timeline
+      renderTimeline();
     });
   }
 
   if (btnSettingsReset) {
     btnSettingsReset.addEventListener('click', () => {
-      setTimeWarning.value = 30;
-      setTimeError.value = 90;
-      setTokenWarning.value = 5000;
-      setTokenError.value = 10000;
-      if (setEnableTime)   setEnableTime.checked   = true;
-      if (setEnableToken)  setEnableToken.checked  = true;
-      if (setEnableErrors) setEnableErrors.checked = true;
-      if (setGithubHost)   setGithubHost.value     = 'https://github.com';
-      if (setGithubRepo)   setGithubRepo.value     = '';
+      if (setTimeWarning)       setTimeWarning.value       = 30;
+      if (setTimeError)         setTimeError.value         = 90;
+      if (setTokenWarning)       setTokenWarning.value       = 4000;
+      if (setTokenError)         setTokenError.value         = 10000;
+      if (setContextCapWarning) setContextCapWarning.value = 80;
+      if (setContextCapError)   setContextCapError.value   = 90;
+
+      if (setEnableTime)       setEnableTime.checked       = true;
+      if (setEnableToken)      setEnableToken.checked      = true;
+      if (setEnableContextCap) setEnableContextCap.checked = true;
+      if (setEnableErrors)     setEnableErrors.checked     = true;
+      if (setGithubHost)       setGithubHost.value         = 'https://github.com';
+      if (setGithubRepo)       setGithubRepo.value         = '';
       syncThresholdDisabledState();
     });
   }
@@ -871,10 +896,14 @@ function renderTimeline() {
 
     item.classList.add(itemKindClass);
 
-    // Calculate anomaly levels for time & token in
+    // Calculate anomaly levels for time, delta tokens, turn 1 initial context & context window %
     const durationSec = (step.durationMs || 0) / 1000;
     const tokensIn = (step.request && step.request.tokensIn) || 0;
+    const prevTokensIn = (idx > 0 && flowData.turns[idx - 1]?.request?.tokensIn) ? flowData.turns[idx - 1].request.tokensIn : 0;
+    const deltaTokens = (idx === 0 || prevTokensIn === 0) ? 0 : Math.max(0, tokensIn - prevTokensIn);
+    const contextPercent = step.request?.contextWindow?.percent || 0;
 
+    // Time duration level
     let timeLevel = 'safe';
     if (durationSec >= thresholdSettings.timeWarning && durationSec <= thresholdSettings.timeError) {
       timeLevel = 'warning';
@@ -882,28 +911,62 @@ function renderTimeline() {
       timeLevel = 'error';
     }
 
-    let tokenLevel = 'safe';
-    if (tokensIn >= thresholdSettings.tokenWarning && tokensIn <= thresholdSettings.tokenError) {
-      tokenLevel = 'warning';
-    } else if (tokensIn > thresholdSettings.tokenError) {
-      tokenLevel = 'error';
+    // Delta token level (for turns after Turn 0)
+    let deltaLevel = 'safe';
+    if (idx > 0 && deltaTokens > 0) {
+      if (deltaTokens >= thresholdSettings.tokenWarning && deltaTokens <= thresholdSettings.tokenError) {
+        deltaLevel = 'warning';
+      } else if (deltaTokens > thresholdSettings.tokenError) {
+        deltaLevel = 'error';
+      }
     }
+
+    // Context capacity saturation level
+    let contextCapLevel = 'safe';
+    if (contextPercent > 0) {
+      const capWarnLimit = thresholdSettings.contextCapWarning || 80;
+      const capErrLimit  = thresholdSettings.contextCapError || 90;
+      if (contextPercent >= capWarnLimit && contextPercent <= capErrLimit) {
+        contextCapLevel = 'warning';
+      } else if (contextPercent > capErrLimit) {
+        contextCapLevel = 'error';
+      }
+    }
+
+    // Evaluate overall token anomaly level for dataset filtering
+    let isTokenErr = false;
+    let isTokenWarn = false;
+
+    if (idx > 0 && thresholdSettings.enableTokenThreshold !== false) {
+      if (deltaLevel === 'error') isTokenErr = true;
+      else if (deltaLevel === 'warning') isTokenWarn = true;
+    }
+    if (thresholdSettings.enableContextCapThreshold !== false) {
+      if (contextCapLevel === 'error') isTokenErr = true;
+      else if (contextCapLevel === 'warning' && !isTokenErr) isTokenWarn = true;
+    }
+
+    const tokenLevel = isTokenErr ? 'error' : (isTokenWarn ? 'warning' : 'safe');
 
     item.dataset.timeLevel = timeLevel;
     item.dataset.tokenLevel = tokenLevel;
+    item.dataset.deltaLevel = deltaLevel;
+    item.dataset.contextCapLevel = contextCapLevel;
 
     // Count warnings and errors — respect per-source toggles
     const isErr = (
       (thresholdSettings.enableTimeThreshold  && timeLevel === 'error')  ||
-      (thresholdSettings.enableTokenThreshold && tokenLevel === 'error') ||
+      (thresholdSettings.enableTokenThreshold !== false && idx > 0 && deltaLevel === 'error') ||
+      (thresholdSettings.enableContextCapThreshold !== false && contextCapLevel === 'error') ||
       (thresholdSettings.enableParserErrors   && (step.hasError || (step.errors && step.errors.length > 0)))
     );
     const isWarn = (
       (thresholdSettings.enableTimeThreshold  && timeLevel === 'warning') ||
-      (thresholdSettings.enableTokenThreshold && tokenLevel === 'warning')
+      (thresholdSettings.enableTokenThreshold !== false && idx > 0 && deltaLevel === 'warning') ||
+      (thresholdSettings.enableContextCapThreshold !== false && contextCapLevel === 'warning')
     );
     if (isErr) errorCount++;
-    if (isWarn) warningCount++;
+    else if (isWarn) warningCount++;
 
     const timeStatusClass = `status-${timeLevel}`;
     const tokenStatusClass = `status-${tokenLevel}`;
@@ -941,9 +1004,12 @@ function renderTimeline() {
       });
     }
 
-    // 2. Collect Token In threshold breach badge
-    if (thresholdSettings.enableTokenThreshold && tokenLevel === 'error') {
-      errBadges.push(`<span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid #c084fc; font-size: 9px; padding: 1px 4px; font-weight: 700;">TOKEN ERR</span>`);
+    // 2. Collect Token In threshold breach badges
+    if (thresholdSettings.enableTokenThreshold !== false && idx > 0 && deltaLevel === 'error') {
+      errBadges.push(`<span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid #c084fc; font-size: 9px; padding: 1px 4px; font-weight: 700;">TOKEN SPIKE</span>`);
+    }
+    if (thresholdSettings.enableContextCapThreshold !== false && contextCapLevel === 'error') {
+      errBadges.push(`<span class="badge" style="background: rgba(244, 63, 94, 0.15); color: #f43f5e; border: 1px solid #f43f5e; font-size: 9px; padding: 1px 4px; font-weight: 700;">CTX CAP ${contextPercent}%</span>`);
     }
 
     // 3. Collect Time duration threshold breach badge
@@ -952,6 +1018,13 @@ function renderTimeline() {
     }
 
     const errBadgeHTML = errBadges.length > 0 ? `<div style="display:inline-flex; gap:3px; margin-left:4px;">${errBadges.join('')}</div>` : '';
+
+    const ctxPillLabel = idx === 0 
+      ? `🪟 Init ${tokensIn >= 1000 ? Math.round(tokensIn/1000) + 'k' : tokensIn} tok` 
+      : `🪟 +${deltaTokens.toLocaleString()} tok (${contextPercent}%)`;
+    const ctxPillTitle = idx === 0 
+      ? `Turn 0 Init Context: ${tokensIn.toLocaleString()} tokens` 
+      : `Turn ${step.index} Delta: +${deltaTokens.toLocaleString()} tokens | Context: ${tokensIn.toLocaleString()} (${contextPercent}%) [Status: ${tokenLevel.toUpperCase()}]`;
 
     item.innerHTML = `
       <div class="timeline-info">
@@ -962,7 +1035,7 @@ function renderTimeline() {
           </div>
           <div class="timeline-right">
             <span class="timeline-time" title="Tổng thời gian đã trôi qua: Lúc ${absoluteTime}">${elapsed}</span>
-            ${step.request?.contextWindow ? `<span class="timeline-ctx ${tokenStatusClass}" title="Token In: ${tokensIn.toLocaleString()} tokens (${tokenLevel.toUpperCase()})">🪟 ${step.request.contextWindow.percent}%</span>` : ''}
+            ${step.request?.contextWindow ? `<span class="timeline-ctx ${tokenStatusClass}" title="${ctxPillTitle}">${ctxPillLabel}</span>` : ''}
           </div>
         </div>
         <div class="timeline-title">${label}</div>
