@@ -14,6 +14,18 @@ let dismissedParsedAt = null;
 let isRefreshing = false;
 let currentTimelineFilter = 'all';
 let currentSearchQuery = '';
+let currentFlowchartOrientation = 'TD';
+
+// Global jumpToTurn handler used by Mermaid node click
+function jumpToTurn(turnIndex) {
+  const idx = typeof turnIndex === 'string' ? parseInt(turnIndex, 10) : turnIndex;
+  if (!isNaN(idx) && typeof setCurrentStep === 'function') {
+    setCurrentStep(idx);
+    const tabBtn = document.querySelector('.tab-btn[data-tab="simulator"]');
+    if (tabBtn) tabBtn.click();
+  }
+}
+window.jumpToTurn = jumpToTurn;
 
 // Threshold Settings (default values)
 let thresholdSettings = {
@@ -2112,18 +2124,13 @@ function initFtaMermaid() {
   const box = document.getElementById('fta-mermaid-code');
   box.removeAttribute('data-processed');
   box.textContent = flowData.ftaMermaid;
-  try {
-    mermaid.init(undefined, box);
-    
-    // Reset zoom after rendering new diagram
+  mermaid.run({ nodes: [box] }).then(() => {
     const ftaContainer = document.querySelector('#tab-analysis .mermaid-render-box');
     if (ftaContainer && ftaContainer.resetZoom) ftaContainer.resetZoom();
-  } catch (err) {
-    console.error('FTA mermaid render error:', err);
-  }
+  }).catch(err => console.error('FTA mermaid render error:', err));
 }
 
-let currentFlowchartOrientation = 'TD';
+
 
 function attachMermaidNodeClickHandlers(container) {
   if (!container) return;
@@ -2146,7 +2153,7 @@ function attachMermaidNodeClickHandlers(container) {
   });
 }
 
-// Render Mermaid Diagram
+// Render Mermaid Diagram — uses mermaid.run() (Mermaid v11+ API)
 function initMermaid() {
   if (!flowData || !flowData.mermaid) return;
   const mermaidBox = document.getElementById('mermaid-code');
@@ -2159,18 +2166,17 @@ function initMermaid() {
     mmd = mmd.replace(/^flowchart LR/m, 'flowchart TD');
   }
 
+  // Reset element so mermaid re-processes it
   mermaidBox.removeAttribute('data-processed');
+  mermaidBox.innerHTML = '';
   mermaidBox.textContent = mmd;
-  try {
-    mermaid.init(undefined, mermaidBox);
-    attachMermaidNodeClickHandlers(mermaidBox);
 
-    // Reset zoom after rendering new diagram
+  mermaid.run({ nodes: [mermaidBox] }).then(() => {
+    attachMermaidNodeClickHandlers(mermaidBox);
     const mmdContainer = document.querySelector('#tab-mermaid .mermaid-render-box');
     if (mmdContainer && mmdContainer.resetZoom) mmdContainer.resetZoom();
-  } catch (err) {
-    console.error('Mermaid render error:', err);
-  }
+    if (window.lucide) lucide.createIcons();
+  }).catch(err => console.error('Mermaid render error:', err));
 }
 
 // Initialize Mermaid.js — use the active app theme so it always matches.
