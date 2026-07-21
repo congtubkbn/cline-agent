@@ -1644,8 +1644,8 @@ function downloadUiMessages(taskId) {
   document.body.removeChild(link);
 }
 
-// Helper to construct GitHub Issue URL, open Preview Modal, and trigger ui_messages.json download
-function openGitHubIssueSafely(title, body, labels = 'bug', taskId = null) {
+// Helper to construct GitHub Issue URL, open Preview Modal, and optionally trigger ui_messages.json download
+function openGitHubIssueSafely(title, bodyInput, labels = 'bug', taskId = null) {
   let host = (thresholdSettings.githubHost || 'https://github.com').trim();
   if (!/^https?:\/\//i.test(host)) {
     host = 'https://' + host;
@@ -1668,14 +1668,6 @@ function openGitHubIssueSafely(title, body, labels = 'bug', taskId = null) {
     return;
   }
 
-  const fullText = `# ${title}\n\n${body}`;
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(fullText).catch(() => {});
-  }
-
-  const safeBody = body.length > 1200 ? body.slice(0, 1200) + '\n\n*(Full report copied to clipboard)*' : body;
-  const issueUrl = `${host}/${rawRepo}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(safeBody)}`;
-
   const currentTask = taskId || (flowData && flowData.taskId) || currentTaskId;
 
   // Show Issue Preview Modal
@@ -1683,21 +1675,53 @@ function openGitHubIssueSafely(title, body, labels = 'bug', taskId = null) {
   const targetUrlInput = document.getElementById('issue-target-url');
   const targetTitleInput = document.getElementById('issue-target-title');
   const targetBodyPre = document.getElementById('issue-target-body');
+  const chkAttachJson = document.getElementById('chk-issue-attach-json');
   const btnOpenUrl = document.getElementById('btn-issue-open-url');
   const btnCopyOnly = document.getElementById('btn-issue-copy-only');
   const btnDownloadJson = document.getElementById('btn-issue-download-json');
   const btnCancel = document.getElementById('btn-issue-cancel');
   const btnClose = document.getElementById('btn-issue-modal-close');
 
-  if (targetUrlInput) targetUrlInput.value = issueUrl;
-  if (targetTitleInput) targetTitleInput.value = title;
-  if (targetBodyPre) targetBodyPre.textContent = body;
+  // Checkbox is unchecked by default
+  if (chkAttachJson) chkAttachJson.checked = false;
+
+  const getBodyText = () => {
+    if (typeof bodyInput === 'string') return bodyInput;
+    const isAttached = chkAttachJson ? chkAttachJson.checked : false;
+    return isAttached ? bodyInput.withLog : bodyInput.withoutLog;
+  };
+
+  const updateModalDisplay = () => {
+    const currentBody = getBodyText();
+    const fullMarkdown = `# ${title}\n\n${currentBody}`;
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(fullMarkdown).catch(() => {});
+    }
+
+    const safeBody = currentBody.length > 1200 ? currentBody.slice(0, 1200) + '\n\n*(Full report copied to clipboard)*' : currentBody;
+    const issueUrl = `${host}/${rawRepo}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(safeBody)}`;
+
+    if (targetUrlInput) targetUrlInput.value = issueUrl;
+    if (targetTitleInput) targetTitleInput.value = title;
+    if (targetBodyPre) targetBodyPre.textContent = currentBody;
+
+    return { issueUrl, fullMarkdown };
+  };
+
+  updateModalDisplay();
 
   if (previewModal) {
     previewModal.classList.add('active');
 
+    const handleCheckboxChange = () => {
+      updateModalDisplay();
+    };
+
     const handleOpen = () => {
-      if (currentTask) {
+      const { issueUrl } = updateModalDisplay();
+      const isAttached = chkAttachJson ? chkAttachJson.checked : false;
+      if (isAttached && currentTask) {
         downloadUiMessages(currentTask);
       }
       window.open(issueUrl, '_blank');
@@ -1714,8 +1738,9 @@ function openGitHubIssueSafely(title, body, labels = 'bug', taskId = null) {
     };
 
     const handleCopy = () => {
+      const { fullMarkdown } = updateModalDisplay();
       if (navigator.clipboard) {
-        navigator.clipboard.writeText(fullText).then(() => {
+        navigator.clipboard.writeText(fullMarkdown).then(() => {
           if (btnCopyOnly) btnCopyOnly.innerHTML = '<i data-lucide="check"></i> Copied!';
           if (window.lucide) lucide.createIcons();
           setTimeout(() => {
@@ -1733,6 +1758,7 @@ function openGitHubIssueSafely(title, body, labels = 'bug', taskId = null) {
 
     function cleanupListeners() {
       if (btnOpenUrl) btnOpenUrl.removeEventListener('click', handleOpen);
+      if (chkAttachJson) chkAttachJson.removeEventListener('change', handleCheckboxChange);
       if (btnDownloadJson) btnDownloadJson.removeEventListener('click', handleDownloadLog);
       if (btnCopyOnly) btnCopyOnly.removeEventListener('click', handleCopy);
       if (btnCancel) btnCancel.removeEventListener('click', handleCloseModal);
@@ -1741,6 +1767,7 @@ function openGitHubIssueSafely(title, body, labels = 'bug', taskId = null) {
 
     cleanupListeners();
     if (btnOpenUrl) btnOpenUrl.addEventListener('click', handleOpen);
+    if (chkAttachJson) chkAttachJson.addEventListener('change', handleCheckboxChange);
     if (btnDownloadJson) btnDownloadJson.addEventListener('click', handleDownloadLog);
     if (btnCopyOnly) btnCopyOnly.addEventListener('click', handleCopy);
     if (btnCancel) btnCancel.addEventListener('click', handleCloseModal);
@@ -1748,7 +1775,9 @@ function openGitHubIssueSafely(title, body, labels = 'bug', taskId = null) {
 
     if (window.lucide) lucide.createIcons();
   } else {
-    if (currentTask) downloadUiMessages(currentTask);
+    const currentBody = getBodyText();
+    const safeBody = currentBody.length > 1200 ? currentBody.slice(0, 1200) + '\n\n*(Full report copied to clipboard)*' : currentBody;
+    const issueUrl = `${host}/${rawRepo}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(safeBody)}`;
     window.open(issueUrl, '_blank');
   }
 }
@@ -1798,7 +1827,8 @@ function createGitHubIssueForTurn(stepIndex) {
   }
 
   const title = `[Task ${taskId}][Model ${modelId}] ${errorSummary}`;
-  const body = `1. Problem Description
+
+  const bodyWithLog = `1. Problem Description
 Failure or abnormal behavior observed during execution of **Turn ${stepIndex}** in Task \`${taskId}\`.
 - **Tool / Action:** \`${toolName}\`
 
@@ -1821,7 +1851,29 @@ ${actualResult}
 - **Context Window:** \`${ctxWin}\`
 - **Log File:** \`ui_messages.json\` (Task \`${taskId}\`)`;
 
-  openGitHubIssueSafely(title, body, 'bug,qa-report', taskId);
+  const bodyWithoutLog = `1. Problem Description
+Failure or abnormal behavior observed during execution of **Turn ${stepIndex}** in Task \`${taskId}\`.
+- **Tool / Action:** \`${toolName}\`
+
+2. Steps / Route to Reproduce
+1. Open **Cline Agent Loop Analyzer** at \`http://localhost:8099/\`
+2. Select Task ID: \`${taskId}\`
+3. Navigate directly to Turn **${stepIndex}** ([Direct Link](${deepLink}))
+
+3. Actual Result (What happened)
+\`\`\`text
+${actualResult}
+\`\`\`
+
+4. System & Context Information
+- **Task ID:** \`${taskId}\`
+- **Model:** \`${modelId}\`${modelMode}
+- **Turn Index:** Turn ${stepIndex} of ${flowData.turns.length}
+- **Time / Duration:** \`${durationSec}s\`
+- **Token Metrics:** Input \`${tokensIn.toLocaleString()}\` → Output \`${tokensOut.toLocaleString()}\` (Total: \`${tokensTotal.toLocaleString()}\`) | Cache Read \`${cacheReads.toLocaleString()}\`
+- **Context Window:** \`${ctxWin}\``;
+
+  openGitHubIssueSafely(title, { withLog: bodyWithLog, withoutLog: bodyWithoutLog }, 'bug,qa-report', taskId);
 }
 
 // Build and open simplified GitHub Issue for a specific Finding
@@ -1838,7 +1890,8 @@ function createGitHubIssueForFinding(findingId) {
   const deepLink = firstTurnEv ? `${baseUrl}#turn-${firstTurnEv.turn}` : `${baseUrl}#tab-analysis`;
 
   const title = `[Task ${taskId}][Model ${modelId}] ${f.category ? f.category.toUpperCase() : 'FINDING'}: ${f.title}`;
-  const body = `1. Problem Description
+
+  const bodyWithLog = `1. Problem Description
 Analysis Finding **${f.id}** (${f.category}) detected with **${f.severity.toUpperCase()}** severity in Task \`${taskId}\`.
 ${f.detail ? `\n**Detail:** ${f.detail}\n` : ''}
 2. Steps / Route to Reproduce
@@ -1857,7 +1910,25 @@ Finding triggered due to fault category \`${f.category}\` with severity \`${f.se
 - **Severity:** \`${f.severity}\`
 - **Log File:** \`ui_messages.json\` (Task \`${taskId}\`)`;
 
-  openGitHubIssueSafely(title, body, 'bug,qa-finding,' + f.category, taskId);
+  const bodyWithoutLog = `1. Problem Description
+Analysis Finding **${f.id}** (${f.category}) detected with **${f.severity.toUpperCase()}** severity in Task \`${taskId}\`.
+${f.detail ? `\n**Detail:** ${f.detail}\n` : ''}
+2. Steps / Route to Reproduce
+1. Open **Cline Agent Loop Analyzer** at \`http://localhost:8099/\`
+2. Select Task ID: \`${taskId}\`
+3. Navigate to **Analysis Tab** or Evidence Link ([Direct Link](${deepLink}))
+4. Review trace evidence: ${f.evidence ? f.evidence.map(e => `\`${e.ref}\``).join(', ') : 'N/A'}.
+
+3. Actual Result (What happened)
+Finding triggered due to fault category \`${f.category}\` with severity \`${f.severity}\`.
+
+4. System & Context Information
+- **Task ID:** \`${taskId}\`
+- **Model:** \`${modelId}\`
+- **Category:** \`${f.category}\`
+- **Severity:** \`${f.severity}\``;
+
+  openGitHubIssueSafely(title, { withLog: bodyWithLog, withoutLog: bodyWithoutLog }, 'bug,qa-finding,' + f.category, taskId);
 }
 
 window.jumpToTurn = jumpToTurn;
