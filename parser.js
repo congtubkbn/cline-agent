@@ -98,6 +98,13 @@ function runParse() {
   fs.writeFileSync(webFlowDataPath, JSON.stringify(flow, null, 2), 'utf-8');
   console.log('Saved flow data to:', flowDataPath, 'and', webFlowDataPath);
 
+  // Copy raw ui_messages.json if present
+  const rawUiMessagesPath = path.join(taskDir, 'ui_messages.json');
+  if (fs.existsSync(rawUiMessagesPath)) {
+    fs.copyFileSync(rawUiMessagesPath, path.join(webTaskDir, 'ui_messages.json'));
+    console.log('Copied ui_messages.json to:', path.join(webTaskDir, 'ui_messages.json'));
+  }
+
   // Render and save flow_report.md
   const markdownReport = renderMarkdown(flow);
   const flowReportPath = path.join(taskDir, `${taskId}_flow_report.md`);

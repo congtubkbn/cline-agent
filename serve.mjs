@@ -201,6 +201,37 @@ function startServer() {
       });
       return;
     }
+
+    // GET /api/tasks/:id/ui_messages  →  tasks/:id/ui_messages.json or cline-log/:id/ui_messages.json
+    if ((m = matchRoute(pathname, '/api/tasks/:id/ui_messages')) && q.method === 'GET') {
+      const { id } = m;
+      if (!isValidTaskId(id)) { apiError(s, 400, 'Invalid task ID'); return; }
+      const webPath = path.join(root, 'tasks', id, 'ui_messages.json');
+      fs.readFile(webPath, (err, data) => {
+        if (err) {
+          const clineLogPath = path.join(root, '..', 'cline-log', id, 'ui_messages.json');
+          fs.readFile(clineLogPath, (err2, data2) => {
+            if (err2) { apiError(s, 404, `ui_messages.json not found for task ${id}`); return; }
+            s.writeHead(200, {
+              'content-type': 'application/json',
+              'content-disposition': `attachment; filename="${id}_ui_messages.json"`,
+              'access-control-allow-origin': '*',
+              'cache-control': 'no-store'
+            });
+            s.end(data2);
+          });
+          return;
+        }
+        s.writeHead(200, {
+          'content-type': 'application/json',
+          'content-disposition': `attachment; filename="${id}_ui_messages.json"`,
+          'access-control-allow-origin': '*',
+          'cache-control': 'no-store'
+        });
+        s.end(data);
+      });
+      return;
+    }
     // -------------------------------------------------------------------------
 
     let f = path.join(root, q.url === '/' ? 'index.html' : decodeURIComponent(q.url.slice(1)));

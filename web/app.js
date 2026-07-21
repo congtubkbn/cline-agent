@@ -1633,16 +1633,26 @@ function renderAnalysisPanel() {
   if (window.lucide) lucide.createIcons();
 }
 
-// Helper to copy text to clipboard and trigger pre-filled GitHub Issue link safely via Preview Modal
-function openGitHubIssueSafely(title, body, labels) {
-  // Always copy full Markdown body to clipboard
-  const fullText = `# ${title}\n\n${body}`;
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(fullText).catch(() => {});
+// Helper to download ui_messages.json file for a given task
+function downloadUiMessages(taskId) {
+  if (!taskId) return;
+  const link = document.createElement('a');
+  link.href = `/api/tasks/${encodeURIComponent(taskId)}/ui_messages`;
+  link.download = `${taskId}_ui_messages.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// Helper to construct GitHub Issue URL, open Preview Modal, and trigger ui_messages.json download
+function openGitHubIssueSafely(title, body, labels = 'bug', taskId = null) {
+  let host = (thresholdSettings.githubHost || 'https://github.com').trim();
+  if (!/^https?:\/\//i.test(host)) {
+    host = 'https://' + host;
   }
+  host = host.replace(/\/+$/, '');
 
   let rawRepo = (thresholdSettings.githubRepo || '').trim();
-  // Clean up full URL input to strictly extract owner/repo pair only
   rawRepo = rawRepo.replace(/^https?:\/\/github\.com\//i, '').replace(/\/+$/, '');
   const parts = rawRepo.split('/').filter(Boolean);
   if (parts.length >= 2) {
@@ -1652,76 +1662,21 @@ function openGitHubIssueSafely(title, body, labels) {
   }
 
   if (!rawRepo) {
-    alert('Full Markdown report copied to Clipboard!\n\nTarget GitHub Repository is currently unconfigured in Settings. Please open Settings to set your Target Repository (owner/repo).');
-    const settingsModal = document.getElementById('settings-modal');
-    if (settingsModal) settingsModal.classList.add('active');
-    return;
-  }
-
-  // Bounded body snippet for URL parameter (browsers choke on > 2000 chars)
-  const safeBody = body.length > 1200 ? body.slice(0, 1200) + '\n\n*(Full report copied to clipboard)*' : body;
-  // Omit labels query param because non-existent labels in target repo trigger GitHub 404
-  const issueUrl = `https://github.com/${rawRepo}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(safeBody)}`;
-
-  // Populate preview modal elements
-  const modal = document.getElementById('issue-preview-modal');
-  const inputUrl = document.getElementById('issue-target-url');
-  const inputTitle = document.getElementById('issue-target-title');
-  const preBody = document.getElementById('issue-target-body');
-  const btnClose = document.getElementById('btn-issue-modal-close');
-  const btnCancel = document.getElementById('btn-issue-cancel');
-  const btnOpen = document.getElementById('btn-issue-open-url');
-  const btnCopy = document.getElementById('btn-issue-copy-only');
-
-  if (inputUrl) inputUrl.value = issueUrl;
-  if (inputTitle) inputTitle.value = title;
-  if (preBody) preBody.textContent = fullText;
-
-  if (modal) modal.classList.add('active');
-
-  const closeModal = () => modal && modal.classList.remove('active');
-
-  if (btnClose) btnClose.onclick = closeModal;
-  if (btnCancel) btnCancel.onclick = closeModal;
-  if (btnOpen) {
-    btnOpen.onclick = () => {
-      closeModal();
-      window.open(issueUrl, '_blank');
-    };
-  }
-  if (btnCopy) {
-    btnCopy.onclick = () => {
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(fullText).then(() => {
-          btnCopy.innerHTML = '<i data-lucide="check"></i> Copied!';
-          if (window.lucide) lucide.createIcons();
-          setTimeout(() => {
-            btnCopy.innerHTML = '<i data-lucide="copy"></i> Copy Markdown';
-            if (window.lucide) lucide.createIcons();
-          }, 1500);
-        });
-      }
-    };
-  }
-}
-
-// Helper to safely construct GitHub Issue URL with custom host & repo and open modal/preview
-function openGitHubIssueSafely(title, body, labels = 'bug') {
-  let host = (thresholdSettings.githubHost || 'https://github.com').trim();
-  if (!/^https?:\/\//i.test(host)) {
-    host = 'https://' + host;
-  }
-  host = host.replace(/\/+$/, '');
-
-  const repo = (thresholdSettings.githubRepo || '').trim();
-  if (!repo) {
     alert('⚠️ GitHub Repository chưa được cấu hình!\n\nVui lòng mở cài đặt (nút ⚙️ Settings) và nhập Host & Repository (VD: "https://github.samsung.com" và "samsung/mobile-agent") để tạo issue.');
     const settingsModal = document.getElementById('settings-modal');
     if (settingsModal) settingsModal.classList.add('active');
     return;
   }
 
-  const issueUrl = `${host}/${repo}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&labels=${encodeURIComponent(labels)}`;
+  const fullText = `# ${title}\n\n${body}`;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(fullText).catch(() => {});
+  }
+
+  const safeBody = body.length > 1200 ? body.slice(0, 1200) + '\n\n*(Full report copied to clipboard)*' : body;
+  const issueUrl = `${host}/${rawRepo}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(safeBody)}`;
+
+  const currentTask = taskId || (flowData && flowData.taskId) || currentTaskId;
 
   // Show Issue Preview Modal
   const previewModal = document.getElementById('issue-preview-modal');
@@ -1730,6 +1685,7 @@ function openGitHubIssueSafely(title, body, labels = 'bug') {
   const targetBodyPre = document.getElementById('issue-target-body');
   const btnOpenUrl = document.getElementById('btn-issue-open-url');
   const btnCopyOnly = document.getElementById('btn-issue-copy-only');
+  const btnDownloadJson = document.getElementById('btn-issue-download-json');
   const btnCancel = document.getElementById('btn-issue-cancel');
   const btnClose = document.getElementById('btn-issue-modal-close');
 
@@ -1737,23 +1693,29 @@ function openGitHubIssueSafely(title, body, labels = 'bug') {
   if (targetTitleInput) targetTitleInput.value = title;
   if (targetBodyPre) targetBodyPre.textContent = body;
 
-  // Auto-copy markdown body to clipboard for convenience
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(body).catch(() => {});
-  }
-
   if (previewModal) {
     previewModal.classList.add('active');
 
     const handleOpen = () => {
+      if (currentTask) {
+        downloadUiMessages(currentTask);
+      }
       window.open(issueUrl, '_blank');
       previewModal.classList.remove('active');
       cleanupListeners();
     };
 
+    const handleDownloadLog = () => {
+      if (currentTask) {
+        downloadUiMessages(currentTask);
+      } else {
+        alert('Không tìm thấy Task ID để tải ui_messages.json');
+      }
+    };
+
     const handleCopy = () => {
       if (navigator.clipboard) {
-        navigator.clipboard.writeText(body).then(() => {
+        navigator.clipboard.writeText(fullText).then(() => {
           if (btnCopyOnly) btnCopyOnly.innerHTML = '<i data-lucide="check"></i> Copied!';
           if (window.lucide) lucide.createIcons();
           setTimeout(() => {
@@ -1771,6 +1733,7 @@ function openGitHubIssueSafely(title, body, labels = 'bug') {
 
     function cleanupListeners() {
       if (btnOpenUrl) btnOpenUrl.removeEventListener('click', handleOpen);
+      if (btnDownloadJson) btnDownloadJson.removeEventListener('click', handleDownloadLog);
       if (btnCopyOnly) btnCopyOnly.removeEventListener('click', handleCopy);
       if (btnCancel) btnCancel.removeEventListener('click', handleCloseModal);
       if (btnClose) btnClose.removeEventListener('click', handleCloseModal);
@@ -1778,21 +1741,25 @@ function openGitHubIssueSafely(title, body, labels = 'bug') {
 
     cleanupListeners();
     if (btnOpenUrl) btnOpenUrl.addEventListener('click', handleOpen);
+    if (btnDownloadJson) btnDownloadJson.addEventListener('click', handleDownloadLog);
     if (btnCopyOnly) btnCopyOnly.addEventListener('click', handleCopy);
     if (btnCancel) btnCancel.addEventListener('click', handleCloseModal);
     if (btnClose) btnClose.addEventListener('click', handleCloseModal);
+
+    if (window.lucide) lucide.createIcons();
   } else {
-    // Fallback if modal is not in DOM
+    if (currentTask) downloadUiMessages(currentTask);
     window.open(issueUrl, '_blank');
   }
 }
 
-// Build and open QA-standardized GitHub Issue for a specific Turn
+// Build and open simplified GitHub Issue for a specific Turn
 function createGitHubIssueForTurn(stepIndex) {
   if (!flowData || stepIndex == null || stepIndex < 0 || stepIndex >= flowData.turns.length) return;
   const turn = flowData.turns[stepIndex];
   const taskId = flowData.taskId || currentTaskId || 'unknown-task';
-  const modelName = flowData.model ? `${flowData.model.modelId} (${flowData.model.mode})` : 'Unknown';
+  const modelId = flowData.model?.modelId || flowData.model?.name || (typeof flowData.model === 'string' ? flowData.model : 'Unknown');
+  const modelMode = flowData.model?.mode ? ` (${flowData.model.mode})` : '';
   const baseUrl = window.location.origin + window.location.pathname;
   const deepLink = `${baseUrl}#turn-${stepIndex}`;
 
@@ -1801,114 +1768,96 @@ function createGitHubIssueForTurn(stepIndex) {
   const durationSec = Math.round((turn.durationMs || 0) / 1000);
   const tokensIn = turn.request?.tokensIn || 0;
   const tokensOut = turn.request?.tokensOut || 0;
+  const tokensTotal = tokensIn + tokensOut;
   const cacheReads = turn.request?.cacheReads || 0;
   const ctxWin = turn.request?.contextWindow ? `${turn.request.contextWindow.percent}% (${turn.request.contextWindow.used}/${turn.request.contextWindow.total})` : 'N/A';
 
   // Error details / Actual Result
+  let errorSummary = '';
   let actualResult = 'Issue / Threshold Anomaly observed at this turn.';
+
   if (turn.hasError && turn.errors && turn.errors.length > 0) {
     actualResult = turn.errors.map(e => e.text?.preview || e.text || 'Error occurred').join('\n');
+    const firstErr = turn.errors[0]?.text?.preview || turn.errors[0]?.text || '';
+    errorSummary = firstErr.split(/\r?\n/)[0].trim();
   } else if (turn.actions) {
     const errAction = turn.actions.find(a => a.output && a.output.isError);
     if (errAction) {
       actualResult = errAction.output.preview || errAction.output.text || 'Tool output returned error status.';
+      errorSummary = actualResult.split(/\r?\n/)[0].trim();
     }
   }
 
-  const expectedResult = `Tool/Command '${toolName}' executes successfully without errors, timeout, or abnormal metric spikes.`;
-  const reasoningExcerpt = turn.reasoning?.preview || 'No reasoning text recorded.';
+  if (!errorSummary) {
+    errorSummary = `Turn ${stepIndex} (${toolName})`;
+  }
 
-  const title = `[Bug] [Turn ${stepIndex}] ${toolName.slice(0, 50)}`;
-  const body = `## 🐛 [QA Bug Report] Issue observed at Turn ${stepIndex}
+  errorSummary = errorSummary.replace(/\s+/g, ' ').trim();
+  if (errorSummary.length > 55) {
+    errorSummary = errorSummary.slice(0, 55).trim() + '...';
+  }
 
-### 📌 1. Bug Title
-**[Bug] [Turn ${stepIndex}] ${toolName}**
-
-### 📝 2. Problem Description
-Failure or abnormal behavior observed during execution of **Turn ${stepIndex}** in Task **\`${taskId}\`**.
+  const title = `[Task ${taskId}][Model ${modelId}] ${errorSummary}`;
+  const body = `1. Problem Description
+Failure or abnormal behavior observed during execution of **Turn ${stepIndex}** in Task \`${taskId}\`.
 - **Tool / Action:** \`${toolName}\`
-- **Turn Index:** Turn ${stepIndex} of ${flowData.turns.length}
 
-### 🛣️ 3. Steps / Route to Reproduce
-1. Open **Cline Agent Loop Analyzer Dashboard** at \`http://localhost:8099/\`
-2. Select Task ID: **\`${taskId}\`**
+2. Steps / Route to Reproduce
+1. Open **Cline Agent Loop Analyzer** at \`http://localhost:8099/\`
+2. Select Task ID: \`${taskId}\`
 3. Navigate directly to Turn **${stepIndex}** ([Direct Link](${deepLink}))
-4. Inspect Turn Actions, Output trace, and Reasoning logs.
 
-### 🔴 4. Actual Result (What happened)
+3. Actual Result (What happened)
 \`\`\`text
 ${actualResult}
 \`\`\`
 
-#### Agent Reasoning Excerpt:
-> ${reasoningExcerpt.replace(/\n/g, '\n> ')}
-
-### 🟢 5. Expected Result (What should happen)
-\`\`\`text
-${expectedResult}
-\`\`\`
-
-### 🖥️ 6. System & Context Information
+4. System & Context Information
 - **Task ID:** \`${taskId}\`
-- **AI Model:** \`${modelName}\`
-- **Execution Duration:** \`${durationSec}s\`
-- **Token Metrics:** Input \`${tokensIn.toLocaleString()}\` → Output \`${tokensOut.toLocaleString()}\` | Cache Read \`${cacheReads.toLocaleString()}\`
+- **Model:** \`${modelId}\`${modelMode}
+- **Turn Index:** Turn ${stepIndex} of ${flowData.turns.length}
+- **Time / Duration:** \`${durationSec}s\`
+- **Token Metrics:** Input \`${tokensIn.toLocaleString()}\` → Output \`${tokensOut.toLocaleString()}\` (Total: \`${tokensTotal.toLocaleString()}\`) | Cache Read \`${cacheReads.toLocaleString()}\`
 - **Context Window:** \`${ctxWin}\`
-- **Trace Reference:** \`turns[${stepIndex}]\`
+- **Log File:** \`ui_messages.json\` (Task \`${taskId}\`)`;
 
----
-*Reported via Cline Agent Loop Analyzer (QA Standard Format)*`;
-
-  openGitHubIssueSafely(title, body, 'bug,qa-report');
+  openGitHubIssueSafely(title, body, 'bug,qa-report', taskId);
 }
 
-// Build and open QA-standardized GitHub Issue for a specific Finding
+// Build and open simplified GitHub Issue for a specific Finding
 function createGitHubIssueForFinding(findingId) {
   if (!flowData || !flowData.analysis || !flowData.analysis.findings) return;
   const f = flowData.analysis.findings.find(x => x.id === findingId);
   if (!f) return;
 
   const taskId = flowData.taskId || currentTaskId || 'unknown-task';
-  const modelName = flowData.model ? `${flowData.model.modelId} (${flowData.model.mode})` : 'Unknown';
+  const modelId = flowData.model?.modelId || flowData.model?.name || (typeof flowData.model === 'string' ? flowData.model : 'Unknown');
   const baseUrl = window.location.origin + window.location.pathname;
   
   const firstTurnEv = f.evidence ? f.evidence.find(e => e.turn != null) : null;
   const deepLink = firstTurnEv ? `${baseUrl}#turn-${firstTurnEv.turn}` : `${baseUrl}#tab-analysis`;
 
-  const title = `[QA Bug Report] [Finding ${f.id}] ${f.title}`;
-  const body = `## 🐛 [QA Bug Report] Finding ${f.id} - ${f.title}
-
-### 📌 1. Bug Title
-**[QA Bug Report] [${f.id}] ${f.title}**
-
-### 📝 2. Problem Description
-Analysis Finding **${f.id}** (${f.category}) detected with **${f.severity.toUpperCase()}** severity on Task **\`${taskId}\`**.
+  const title = `[Task ${taskId}][Model ${modelId}] ${f.category ? f.category.toUpperCase() : 'FINDING'}: ${f.title}`;
+  const body = `1. Problem Description
+Analysis Finding **${f.id}** (${f.category}) detected with **${f.severity.toUpperCase()}** severity in Task \`${taskId}\`.
 ${f.detail ? `\n**Detail:** ${f.detail}\n` : ''}
-
-### 🛣️ 3. Steps / Route to Reproduce
-1. Open **Cline Agent Loop Analyzer Dashboard** at \`http://localhost:8099/\`
-2. Select Task ID: **\`${taskId}\`**
+2. Steps / Route to Reproduce
+1. Open **Cline Agent Loop Analyzer** at \`http://localhost:8099/\`
+2. Select Task ID: \`${taskId}\`
 3. Navigate to **Analysis Tab** or Evidence Link ([Direct Link](${deepLink}))
-4. Review trace evidence: ${f.evidence.map(e => `\`${e.ref}\``).join(', ')}.
+4. Review trace evidence: ${f.evidence ? f.evidence.map(e => `\`${e.ref}\``).join(', ') : 'N/A'}.
 
-### 🔴 4. Actual Result (What happened)
-Finding triggered due to fault category **\`${f.category}\`** with severity **\`${f.severity}\`**.
+3. Actual Result (What happened)
+Finding triggered due to fault category \`${f.category}\` with severity \`${f.severity}\`.
 
-### 🟢 5. Expected Result (What should happen)
-\`\`\`text
-${f.suggestion || 'Workflow / Skill instructions execute cleanly without triggering analysis findings.'}
-\`\`\`
-
-### 🖥️ 6. System & Context Information
+4. System & Context Information
 - **Task ID:** \`${taskId}\`
-- **AI Model:** \`${modelName}\`
+- **Model:** \`${modelId}\`
 - **Category:** \`${f.category}\`
 - **Severity:** \`${f.severity}\`
+- **Log File:** \`ui_messages.json\` (Task \`${taskId}\`)`;
 
----
-*Reported via Cline Agent Loop Analyzer (QA Standard Format)*`;
-
-  openGitHubIssueSafely(title, body, 'bug,qa-finding,' + f.category);
+  openGitHubIssueSafely(title, body, 'bug,qa-finding,' + f.category, taskId);
 }
 
 window.jumpToTurn = jumpToTurn;
