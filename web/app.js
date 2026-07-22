@@ -161,6 +161,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (ftaContainer) enablePanAndZoom(ftaContainer);
   
   const mmdContainer = document.querySelector('#tab-mermaid .mermaid-render-box');
+  if (mmdContainer) enablePanAndZoom(mmdContainer);
+
   // Listen to hash changes (browser back/forward or manual hash edits)
   window.addEventListener('hashchange', () => {
     const t = getTurnFromHash();
@@ -2273,11 +2275,92 @@ function enablePanAndZoom(container) {
     }
   });
 
-  // Expose reset zoom function
+  // Expose reset zoom function (Fit to Screen)
   container.resetZoom = function() {
-    scale = 1;
-    translateX = 0;
-    translateY = 0;
+    const svg = container.querySelector('svg');
+    if (!svg) {
+      scale = 1; translateX = 0; translateY = 0;
+      updateTransform();
+      return;
+    }
+    const rect = container.getBoundingClientRect();
+    
+    let svgWidth = 0;
+    let svgHeight = 0;
+    
+    // 1. Try viewBox first (most accurate for aspect ratio and designer's bounds)
+    const viewBox = svg.getAttribute('viewBox');
+    if (viewBox) {
+      const parts = viewBox.split(/[ ,]+/);
+      if (parts.length === 4) {
+        svgWidth = parseFloat(parts[2]);
+        svgHeight = parseFloat(parts[3]);
+      }
+    }
+    
+    // 2. Try getBBox if viewBox was invalid or not found
+    if (!svgWidth || !svgHeight) {
+      try {
+        const bbox = svg.getBBox();
+        svgWidth = bbox.width;
+        svgHeight = bbox.height;
+      } catch (e) {}
+    }
+    
+    // 3. Fall back to absolute attributes (ignore % values)
+    if (!svgWidth || !svgHeight) {
+      const wAttr = svg.getAttribute('width');
+      const hAttr = svg.getAttribute('height');
+      if (wAttr && !wAttr.includes('%')) {
+        svgWidth = parseFloat(wAttr);
+      }
+      if (hAttr && !hAttr.includes('%')) {
+        svgHeight = parseFloat(hAttr);
+      }
+    }
+    
+    // 4. Ultimate fallback to client dimensions
+    if (!svgWidth || !svgHeight) {
+      svgWidth = svg.clientWidth;
+      svgHeight = svg.clientHeight;
+    }
+    
+    if (svgWidth && svgHeight) {
+      // Force SVG to its intrinsic size to prevent browser from auto-scaling it via width="100%"
+      svg.style.width = svgWidth + 'px';
+      svg.style.height = svgHeight + 'px';
+
+      const pad = 48; // padding
+      const scaleX = (rect.width - pad) / svgWidth;
+      const scaleY = (rect.height - pad) / svgHeight;
+      
+      // Calculate ideal fit scale
+      const idealScale = Math.min(scaleX, scaleY, 1);
+      
+      // Limit how much it can zoom out so it doesn't become a microscopic line
+      // For massive diagrams, 0.4 is a good lower bound so text is still identifiable
+      scale = Math.max(0.4, idealScale);
+      
+      // If we had to bound the scale (meaning the diagram is huge), 
+      // align to Top (TD) or Left (LR) instead of center, so user sees the START node.
+      if (scale > idealScale) {
+        if (typeof currentFlowchartOrientation !== 'undefined' && currentFlowchartOrientation === 'LR') {
+           translateX = pad / 2; // Align left
+           translateY = (rect.height - (svgHeight * scale)) / 2; // Center vertically
+        } else {
+           translateX = (rect.width - (svgWidth * scale)) / 2; // Center horizontally
+           translateY = pad / 2; // Align top
+        }
+      } else {
+        // Standard center alignment for smaller diagrams
+        translateX = (rect.width - (svgWidth * scale)) / 2;
+        translateY = (rect.height - (svgHeight * scale)) / 2;
+      }
+    } else {
+      scale = 1;
+      translateX = 0;
+      translateY = 0;
+    }
     updateTransform();
   };
   

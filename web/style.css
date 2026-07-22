@@ -1240,15 +1240,18 @@ input[type=range]::-webkit-slider-thumb:hover {
   background: var(--diagram-bg);
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  padding: 24px;
   overflow: hidden;
   position: relative;
   min-height: 450px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  display: block;
   cursor: grab;
   user-select: none;
+}
+
+.mermaid-render-box svg {
+  max-width: none !important;
+  max-height: none !important;
+  transform-origin: 0 0;
 }
 
 .mermaid-render-box:active {
