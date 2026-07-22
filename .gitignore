@@ -10,6 +10,7 @@ error_report.md
 
 # Node.js dependencies
 node_modules/
+dist/skill/
 
 
 # Sidecar generated files
