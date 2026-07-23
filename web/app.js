@@ -1989,16 +1989,63 @@ function createGitHubIssueForTurn(stepIndex) {
   // Error details / Actual Result
   let errorSummary = '';
   let actualResult = 'Issue / Threshold Anomaly observed at this turn.';
+  let errorType = 'General Error';
+
+  // Extract Tool Details
+  let toolInput = 'N/A';
+  let toolOutput = 'N/A';
+  if (act) {
+    if (act.kind === 'command') {
+      toolInput = act.what?.command || 'N/A';
+    } else {
+      toolInput = act.what ? JSON.stringify(act.what, null, 2) : 'N/A';
+    }
+    if (act.output) {
+      toolOutput = act.output.preview || act.output.text || 'N/A';
+    }
+  }
+  let reasoning = turn.reasoning?.preview || turn.reasoning?.text || turn.request?.text || 'N/A';
+
+  // Evaluate Delta Tokens for anomalies
+  let deltaTokens = tokensTotal;
+  if (stepIndex > 0 && flowData.turns[stepIndex - 1]) {
+    const prevTurn = flowData.turns[stepIndex - 1];
+    const prevTokens = (prevTurn.request?.tokensIn || 0) + (prevTurn.request?.tokensOut || 0);
+    deltaTokens = tokensTotal - prevTokens;
+  }
+  let isTokenSpike = (stepIndex > 0 && deltaTokens > (thresholdSettings?.tokenError || 10000));
 
   if (turn.hasError && turn.errors && turn.errors.length > 0) {
     actualResult = turn.errors.map(e => e.text?.preview || e.text || 'Error occurred').join('\n');
     const firstErr = turn.errors[0]?.text?.preview || turn.errors[0]?.text || '';
     errorSummary = firstErr.split(/\r?\n/)[0].trim();
+    if (errorSummary.includes(':')) {
+      errorType = errorSummary.split(':')[0].trim();
+    }
   } else if (turn.actions) {
     const errAction = turn.actions.find(a => a.output && a.output.isError);
     if (errAction) {
       actualResult = errAction.output.preview || errAction.output.text || 'Tool output returned error status.';
       errorSummary = actualResult.split(/\r?\n/)[0].trim();
+      if (errorSummary.includes(':')) {
+        errorType = errorSummary.split(':')[0].trim();
+      }
+    }
+  }
+
+  if (errorType === 'General Error') {
+    if (isTokenSpike) {
+      errorType = 'Token Spike';
+      errorSummary = `Token spike detected: +${deltaTokens.toLocaleString()} tokens`;
+      if (actualResult === 'Issue / Threshold Anomaly observed at this turn.') actualResult = toolOutput;
+    } else if (durationSec > (thresholdSettings?.timeError || 60)) {
+      errorType = 'Long Duration';
+      errorSummary = `Turn took unusually long: ${durationSec}s`;
+      if (actualResult === 'Issue / Threshold Anomaly observed at this turn.') actualResult = toolOutput;
+    } else {
+      if (actualResult === 'Issue / Threshold Anomaly observed at this turn.' && toolOutput !== 'N/A') {
+         actualResult = toolOutput;
+      }
     }
   }
 
@@ -2011,23 +2058,32 @@ function createGitHubIssueForTurn(stepIndex) {
     errorSummary = errorSummary.slice(0, 55).trim() + '...';
   }
 
-  const title = `[Task ${taskId}][Model ${modelId}] ${errorSummary}`;
+  let errorTypeUpper = errorType.toUpperCase();
+  const title = `[Task ${taskId}][Model ${modelId}] [Turn ${stepIndex}] Error ${errorTypeUpper}`;
 
-  const bodyWithLog = `1. Problem Description
-Failure or abnormal behavior observed during execution of **Turn ${stepIndex}** in Task \`${taskId}\`.
-- **Tool / Action:** \`${toolName}\`
+  const bodyWithLog = `1 Problem CRITICAL ERROR · ${errorTypeUpper}           
+${errorSummary}
 
 2. Steps / Route to Reproduce
-1. Open **Cline Agent Loop Analyzer** at \`http://localhost:8099/\`
-2. Select Task ID: \`${taskId}\`
-3. Navigate directly to Turn **${stepIndex}** ([Direct Link](${deepLink}))
 
-3. Actual Result (What happened)
+3 Detail 
+
+**Model Reasoning:**
+\`\`\`text
+${reasoning}
+\`\`\`
+
+**Tool Input (${toolName}):**
+\`\`\`text
+${toolInput}
+\`\`\`
+
+**Actual Result / Tool Output:**
 \`\`\`text
 ${actualResult}
 \`\`\`
 
-4. System & Context Information
+4 System & Context Information
 - **Task ID:** \`${taskId}\`
 - **Model:** \`${modelId}\`${modelMode}
 - **Turn Index:** Turn ${stepIndex} of ${flowData.turns.length}
@@ -2036,21 +2092,29 @@ ${actualResult}
 - **Context Window:** \`${ctxWin}\`
 - **Log File:** \`ui_messages.json\` (Task \`${taskId}\`)`;
 
-  const bodyWithoutLog = `1. Problem Description
-Failure or abnormal behavior observed during execution of **Turn ${stepIndex}** in Task \`${taskId}\`.
-- **Tool / Action:** \`${toolName}\`
+  const bodyWithoutLog = `1 Problem CRITICAL ERROR · ${errorTypeUpper}           
+${errorSummary}
 
 2. Steps / Route to Reproduce
-1. Open **Cline Agent Loop Analyzer** at \`http://localhost:8099/\`
-2. Select Task ID: \`${taskId}\`
-3. Navigate directly to Turn **${stepIndex}** ([Direct Link](${deepLink}))
 
-3. Actual Result (What happened)
+3 Detail 
+
+**Model Reasoning:**
+\`\`\`text
+${reasoning}
+\`\`\`
+
+**Tool Input (${toolName}):**
+\`\`\`text
+${toolInput}
+\`\`\`
+
+**Actual Result / Tool Output:**
 \`\`\`text
 ${actualResult}
 \`\`\`
 
-4. System & Context Information
+4 System & Context Information
 - **Task ID:** \`${taskId}\`
 - **Model:** \`${modelId}\`${modelMode}
 - **Turn Index:** Turn ${stepIndex} of ${flowData.turns.length}
@@ -2074,40 +2138,42 @@ function createGitHubIssueForFinding(findingId) {
   const firstTurnEv = f.evidence ? f.evidence.find(e => e.turn != null) : null;
   const deepLink = firstTurnEv ? `${baseUrl}#turn-${firstTurnEv.turn}` : `${baseUrl}#tab-analysis`;
 
-  const title = `[Task ${taskId}][Model ${modelId}] ${f.category ? f.category.toUpperCase() : 'FINDING'}: ${f.title}`;
+  const title = `[Task ${taskId}][Model ${modelId}] [Finding] ${f.category ? f.category.toUpperCase() : 'ISSUE'} ${f.title}`;
 
-  const bodyWithLog = `1. Problem Description
-Analysis Finding **${f.id}** (${f.category}) detected with **${f.severity.toUpperCase()}** severity in Task \`${taskId}\`.
-${f.detail ? `\n**Detail:** ${f.detail}\n` : ''}
+  const bodyWithLog = `1 Problem ${f.severity.toUpperCase()} · ${f.category ? f.category.toUpperCase() : 'FINDING'}           
+${f.title}
+${f.detail ? `\n${f.detail}\n` : ''}
 2. Steps / Route to Reproduce
 1. Open **Cline Agent Loop Analyzer** at \`http://localhost:8099/\`
 2. Select Task ID: \`${taskId}\`
 3. Navigate to **Analysis Tab** or Evidence Link ([Direct Link](${deepLink}))
 4. Review trace evidence: ${f.evidence ? f.evidence.map(e => `\`${e.ref}\``).join(', ') : 'N/A'}.
 
-3. Actual Result (What happened)
+3 Detail 
+
 Finding triggered due to fault category \`${f.category}\` with severity \`${f.severity}\`.
 
-4. System & Context Information
+4 System & Context Information
 - **Task ID:** \`${taskId}\`
 - **Model:** \`${modelId}\`
 - **Category:** \`${f.category}\`
 - **Severity:** \`${f.severity}\`
 - **Log File:** \`ui_messages.json\` (Task \`${taskId}\`)`;
 
-  const bodyWithoutLog = `1. Problem Description
-Analysis Finding **${f.id}** (${f.category}) detected with **${f.severity.toUpperCase()}** severity in Task \`${taskId}\`.
-${f.detail ? `\n**Detail:** ${f.detail}\n` : ''}
+  const bodyWithoutLog = `1 Problem ${f.severity.toUpperCase()} · ${f.category ? f.category.toUpperCase() : 'FINDING'}           
+${f.title}
+${f.detail ? `\n${f.detail}\n` : ''}
 2. Steps / Route to Reproduce
 1. Open **Cline Agent Loop Analyzer** at \`http://localhost:8099/\`
 2. Select Task ID: \`${taskId}\`
 3. Navigate to **Analysis Tab** or Evidence Link ([Direct Link](${deepLink}))
 4. Review trace evidence: ${f.evidence ? f.evidence.map(e => `\`${e.ref}\``).join(', ') : 'N/A'}.
 
-3. Actual Result (What happened)
+3 Detail 
+
 Finding triggered due to fault category \`${f.category}\` with severity \`${f.severity}\`.
 
-4. System & Context Information
+4 System & Context Information
 - **Task ID:** \`${taskId}\`
 - **Model:** \`${modelId}\`
 - **Category:** \`${f.category}\`
