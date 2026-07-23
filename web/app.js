@@ -1864,20 +1864,15 @@ function openGitHubIssueSafely(title, bodyInput, labels = 'bug', taskId = null) 
   const targetUrlInput = document.getElementById('issue-target-url');
   const targetTitleInput = document.getElementById('issue-target-title');
   const targetBodyPre = document.getElementById('issue-target-body');
-  const chkAttachJson = document.getElementById('chk-issue-attach-json');
   const btnOpenUrl = document.getElementById('btn-issue-open-url');
   const btnCopyOnly = document.getElementById('btn-issue-copy-only');
   const btnDownloadJson = document.getElementById('btn-issue-download-json');
   const btnCancel = document.getElementById('btn-issue-cancel');
   const btnClose = document.getElementById('btn-issue-modal-close');
 
-  // Checkbox is unchecked by default
-  if (chkAttachJson) chkAttachJson.checked = false;
-
   const getBodyText = () => {
     if (typeof bodyInput === 'string') return bodyInput;
-    const isAttached = chkAttachJson ? chkAttachJson.checked : false;
-    return isAttached ? bodyInput.withLog : bodyInput.withoutLog;
+    return bodyInput.withoutLog || bodyInput.withLog || '';
   };
 
   const updateModalDisplay = () => {
@@ -1902,10 +1897,6 @@ function openGitHubIssueSafely(title, bodyInput, labels = 'bug', taskId = null) 
 
   if (previewModal) {
     previewModal.classList.add('active');
-
-    const handleCheckboxChange = () => {
-      updateModalDisplay();
-    };
 
     const handleOpen = () => {
       const { issueUrl } = updateModalDisplay();
@@ -1943,7 +1934,6 @@ function openGitHubIssueSafely(title, bodyInput, labels = 'bug', taskId = null) 
 
     function cleanupListeners() {
       if (btnOpenUrl) btnOpenUrl.removeEventListener('click', handleOpen);
-      if (chkAttachJson) chkAttachJson.removeEventListener('change', handleCheckboxChange);
       if (btnDownloadJson) btnDownloadJson.removeEventListener('click', handleDownloadLog);
       if (btnCopyOnly) btnCopyOnly.removeEventListener('click', handleCopy);
       if (btnCancel) btnCancel.removeEventListener('click', handleCloseModal);
@@ -1952,7 +1942,6 @@ function openGitHubIssueSafely(title, bodyInput, labels = 'bug', taskId = null) 
 
     cleanupListeners();
     if (btnOpenUrl) btnOpenUrl.addEventListener('click', handleOpen);
-    if (chkAttachJson) chkAttachJson.addEventListener('change', handleCheckboxChange);
     if (btnDownloadJson) btnDownloadJson.addEventListener('click', handleDownloadLog);
     if (btnCopyOnly) btnCopyOnly.addEventListener('click', handleCopy);
     if (btnCancel) btnCancel.addEventListener('click', handleCloseModal);

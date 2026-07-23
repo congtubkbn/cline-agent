@@ -553,10 +553,10 @@
             <pre id="issue-target-body" style="max-height: 180px; overflow-y: auto; background: var(--fill-02); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; font-family: var(--font-mono); font-size: 11px; white-space: pre-wrap; word-break: break-word; margin: 0;"></pre>
           </div>
           <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); padding: 10px 14px; border-radius: 8px; font-size: 12px; color: var(--text-main);">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; font-weight: 500;">
-              <input type="checkbox" id="chk-issue-attach-json" style="width: 16px; height: 16px; accent-color: var(--indigo); cursor: pointer;">
-              <span><b>Đính kèm thông tin Log (ui_messages.json) trong Issue body</b></span>
-            </label>
+            <div style="display: flex; align-items: center; gap: 8px; font-weight: 500;">
+              <i data-lucide="info" style="width: 16px; height: 16px; color: var(--indigo);"></i>
+              <span><b>Tải file log để đính kèm thủ công vào GitHub Issue (nếu cần)</b></span>
+            </div>
             <button class="btn btn-secondary btn-sm" id="btn-issue-download-json" title="Tải thủ công file log" style="background: var(--card-bg); border: 1px solid var(--border-color); color: var(--indigo); font-weight: 600; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
               <i data-lucide="download"></i> Download ui_messages.json
             </button>
